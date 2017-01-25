@@ -5,7 +5,7 @@ using System;
 public class Finger : MonoBehaviour
 {
     private TrailRenderer trail;
-    private HandController hand;
+    public HandController Hand { get; private set; }
     private Instrument instrument;
 
     private bool down;
@@ -25,7 +25,11 @@ public class Finger : MonoBehaviour
             else
             {
                 trail.time = 0;
-                if (LastKey != null) LastKey.Release();
+                if (LastKey != null)
+                {
+                    LastKey.Release();
+                    LastKey = null;
+                }
             }
         }
     }
@@ -41,19 +45,23 @@ public class Finger : MonoBehaviour
     }
 
 
-    public void Initialize(HandController hand, Instrument instrument)
+    public void Initialize(HandController Hand, Instrument instrument)
     {
-        this.hand = hand;
+        this.Hand = Hand;
         this.instrument = instrument;
+    }
+    public void UpdateFinger()
+    {
+        if (Down) UpdateKeyCollision();
+    }
+    public void LateUpdate()
+    {
+        LastPos = transform.position;
     }
 
     private void Awake()
     {
         trail = GetComponent<TrailRenderer>();
-    }
-    private void Update()
-    {
-        if (Down) UpdateKeyCollision();
     }
     private void UpdateKeyCollision()
     {
@@ -64,17 +72,19 @@ public class Finger : MonoBehaviour
         {
             foreach (InstrumentKey key in instrument.Keys)
             {
+                if (LastKey == key) continue;
+
                 float dist = Vector3.Distance(transform.position, LastPos);
                 float intersect_dist;
 
                 Ray ray = new Ray(LastPos, transform.position - LastPos);
-                Debug.DrawRay(ray.origin, ray.direction);
 
                 if (key.GetBounds().IntersectRay(ray, out intersect_dist))
                 {
                     if (intersect_dist < dist)
                     {
                         PlayKey(key);
+                        break;
                     }
                 }
             }
@@ -86,7 +96,10 @@ public class Finger : MonoBehaviour
 
         if (on_hit_key != null) on_hit_key(key);
 
-        if (LastKey != null && LastKey != key) LastKey.Release();
+        if (LastKey != null && LastKey != key)
+        {
+            LastKey.Release();
+        }
         LastKey = key;
     }
 

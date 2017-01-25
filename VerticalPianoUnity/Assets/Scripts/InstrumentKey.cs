@@ -77,12 +77,12 @@ public class InstrumentKey : MonoBehaviour
         }
         else
         {
-            float deadzone = 0.05f;
+            float deadzone = 0.025f;
 
-            Debug.Log(playing_finger.GetVelocity().magnitude);
-            //AudioSource.volume *= 0.95f;
+            //Tools.Log(playing_finger.GetVelocity().magnitude + " : " + playing_finger.Hand.GetVelocity().magnitude);
+
             AudioSource.volume = Mathf.Clamp01(
-                (playing_finger.GetVelocity().magnitude - deadzone) / (1 - deadzone));
+                (playing_finger.Hand.GetVelocity().magnitude - deadzone) / (1.5f - deadzone));
             //Vector3 v = playing_finger.transform.position - playing_finger.LastPos;
             //AudioSource.volume = Mathf.Clamp01(v.magnitude / 0.01f); 
         }

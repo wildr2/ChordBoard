@@ -4,6 +4,9 @@ using System;
 
 public class HandController : MonoBehaviour
 {
+    private Coroutine debug_flash_routine;
+    public MeshRenderer debug_sphere;
+
     public OVRInput.Controller controller;
     private Instrument instrument;
     private Finger[] fingers;
@@ -29,11 +32,12 @@ public class HandController : MonoBehaviour
     }
     private void Update()
     {
-        // Position / Orientation
-        LastPos = transform.localPosition;
-        transform.localPosition =
+        // Position
+        LastPos = transform.position;
+        transform.position =
             OVRInput.GetLocalControllerPosition(controller);
 
+        // Rotation
         transform.rotation = OVRInput.GetLocalControllerRotation(controller);
 
         // Grab instrument
@@ -43,18 +47,31 @@ public class HandController : MonoBehaviour
             StartCoroutine(UpdateGrabInstrument());
         }
 
-        // Trigger
-        if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger))
+        // Fingers Up / Down
+        if (OVRInput.GetDown(OVRInput.Button.Two))
         {
-            foreach (Finger finger in fingers)
-                finger.Down = true;
+            //Tools.Log("down");
+            for (int i = 0; i < fingers.Length; ++i)
+            {
+                fingers[i].Down = true;
+            }
+                
         }
-        else if (OVRInput.GetUp(OVRInput.Button.SecondaryIndexTrigger))
+        else if (OVRInput.GetUp(OVRInput.Button.Two))
         {
-            foreach (Finger finger in fingers)
-                finger.Down = false;
+            //Tools.Log("up");
+            for (int i = 0; i < fingers.Length; ++i)
+            {
+                fingers[i].Down = false;
+            }
+                
         }
 
+        // Fingers
+        for (int i = 0; i < fingers.Length; ++i)
+        {
+            fingers[i].UpdateFinger();
+        }
 
         // Instrument attach
         //if (LastKey != null)
@@ -96,5 +113,26 @@ public class HandController : MonoBehaviour
 
             yield return null;
         }
+    }
+
+
+    // Debug
+
+    public void DebugFlash(Color color)
+    {
+        if (debug_flash_routine != null)
+            StopCoroutine(debug_flash_routine);
+
+        debug_flash_routine = StartCoroutine(DebugFlashRoutine(color));
+    }
+    private IEnumerator DebugFlashRoutine(Color color)
+    {
+        debug_sphere.enabled = true;
+        for (float t = 0; t < 1; t += Time.deltaTime * 2f)
+        {
+            debug_sphere.material.SetColor("_Color", Color.Lerp(color, Color.clear, t));
+            yield return null;
+        }
+        debug_sphere.enabled = false;
     }
 }
