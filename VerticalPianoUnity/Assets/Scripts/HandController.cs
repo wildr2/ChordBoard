@@ -41,33 +41,15 @@ public class HandController : MonoBehaviour
         transform.rotation = OVRInput.GetLocalControllerRotation(controller);
 
         // Grab instrument
-        if (OVRInput.GetDown(OVRInput.Button.One))
+        bool btn_thumbstick_down = OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick, controller);
+        if (btn_thumbstick_down)
         {
             StopAllCoroutines();
             StartCoroutine(UpdateGrabInstrument());
         }
 
-        // Fingers Up / Down
-        if (OVRInput.GetDown(OVRInput.Button.Two))
-        {
-            //Tools.Log("down");
-            for (int i = 0; i < fingers.Length; ++i)
-            {
-                fingers[i].Down = true;
-            }
-                
-        }
-        else if (OVRInput.GetUp(OVRInput.Button.Two))
-        {
-            //Tools.Log("up");
-            for (int i = 0; i < fingers.Length; ++i)
-            {
-                fingers[i].Down = false;
-            }
-                
-        }
-
         // Fingers
+        UpdateFingerArangement();
         for (int i = 0; i < fingers.Length; ++i)
         {
             fingers[i].UpdateFinger();
@@ -97,6 +79,95 @@ public class HandController : MonoBehaviour
         //    }
         //}
     }
+    private void UpdateFingerArangement()
+    {
+        float index = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, controller);
+        bool indexdown = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, controller);
+        bool indexup = OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger, controller);
+        bool thumbrestdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbRest, controller);
+        bool thumbrestup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbRest, controller);
+        float hand = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, controller);
+        bool a_down = OVRInput.GetDown(OVRInput.Button.One, controller);
+        bool a_up = OVRInput.GetUp(OVRInput.Button.One, controller);
+        bool b_down = OVRInput.GetDown(OVRInput.Button.Two, controller);
+        bool b_up = OVRInput.GetUp(OVRInput.Button.Two, controller);
+        
+        // Finger 0
+        if (indexdown)
+        {
+            fingers[0].Down = true;
+        }
+        else if (indexup)
+        {
+            fingers[0].Down = false;
+        }
+        //fingers[0].transform.localPosition = Vector3.zero;
+
+        // Finger 1
+        if (a_down)
+        {
+            fingers[1].Down = true;
+        }
+        else if (a_up)
+        {
+            fingers[1].Down = false;
+        }
+        Quaternion q = OVRInput.GetLocalControllerRotation(controller);
+        float r = Mathf.DeltaAngle(0, q.eulerAngles.z) / 180f;
+        float height = Mathf.CeilToInt((-0.15f - 0.15f * r) / 0.05f) * 0.05f;
+        fingers[1].transform.position = transform.position + Vector3.up * height;
+
+
+        //Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, controller); 
+        //bool stick_touch = OVRInput.Get(OVRInput.Touch.PrimaryThumbstick, controller);
+
+        //int stick_area = 0;
+        //float angle = Mathf.Atan2(stick.y, stick.x) * Mathf.Rad2Deg;
+        //angle = PosifyAngle(angle);
+        //stick_area = angle < 45 || angle > 315 ? 0 :
+        //             angle < 135 ? 1 :
+        //             angle < 225 ? 2 : 3;
+
+
+        //if (stick.magnitude == 0 || !stick_touch)
+        //{
+        //    if (fingers[0].Down) fingers[0].Down = false;
+        //}
+        //if (!stick_touch)
+        //{
+        //    if (fingers[1].Down) fingers[1].Down = false;
+        //}
+        //else if (stick_touch)
+        //{
+        //    if (!fingers[1].Down) fingers[1].Down = true;
+        //    if (stick.magnitude > 0)
+        //    {
+        //        if (stick_area == 0)
+        //        {
+        //            if (!fingers[0].Down) fingers[0].Down = true;
+        //            fingers[0].transform.localPosition = Vector3.up * 0.1f;
+        //        }
+        //        else if (stick_area == 1)
+        //        {
+        //            if (!fingers[0].Down) fingers[0].Down = true;
+        //            fingers[0].transform.localPosition = Vector3.up * 0.2f;
+        //        }
+        //        else if (stick_area == 2)
+        //        {
+        //            if (!fingers[0].Down) fingers[0].Down = true;
+        //            fingers[0].transform.localPosition = Vector3.up * 0.15f;
+        //        }
+        //        else if (stick_area == 3)
+        //        {
+        //            if (!fingers[0].Down) fingers[0].Down = true;
+        //            fingers[0].transform.localPosition = Vector3.up * 0.05f;
+        //        }
+        //    }
+        //}
+
+
+
+    }
     private IEnumerator UpdateGrabInstrument()
     {
         Vector3 instr_p0 = instrument.transform.position;
@@ -105,7 +176,7 @@ public class HandController : MonoBehaviour
         Vector3 p0 = transform.position;
         Quaternion r0 = transform.rotation;
 
-        while (OVRInput.Get(OVRInput.Button.One))
+        while (OVRInput.Get(OVRInput.Button.PrimaryThumbstick, controller))
         {
             instrument.transform.position = instr_p0 + transform.position - p0;
             instrument.transform.rotation = (Quaternion.Inverse(r0) * transform.rotation) * instr_r0;
@@ -114,7 +185,11 @@ public class HandController : MonoBehaviour
             yield return null;
         }
     }
-
+    private float PosifyAngle(float a)
+    {
+        a = a % 360f;
+        return a > 0 ? a : a + 360f;
+    }
 
     // Debug
 

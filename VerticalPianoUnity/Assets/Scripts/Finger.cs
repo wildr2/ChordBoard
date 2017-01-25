@@ -1,13 +1,18 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System;
 
 public class Finger : MonoBehaviour
 {
+    private MeshRenderer meshr;
     private TrailRenderer trail;
+    public Color down_color;
+
     public HandController Hand { get; private set; }
     private Instrument instrument;
 
+    private List<InstrumentKey> held_keys = new List<InstrumentKey>();
     private bool down;
     public bool Down
     {
@@ -21,19 +26,16 @@ public class Finger : MonoBehaviour
             if (down)
             {
                 trail.time = 1.5f;
+                meshr.material.SetColor("_Color", down_color);
             }
             else
             {
                 trail.time = 0;
-                if (LastKey != null)
-                {
-                    LastKey.Release();
-                    LastKey = null;
-                }
+                meshr.material.SetColor("_Color", new Color(0.2f, 0.2f, 0.2f));
+                ReleaseHeldKeys();
             }
         }
     }
-    public InstrumentKey LastKey { get; private set; }
     public Vector3 LastPos { get; private set; }
 
     public Action<InstrumentKey> on_hit_key;
@@ -47,12 +49,14 @@ public class Finger : MonoBehaviour
 
     public void Initialize(HandController Hand, Instrument instrument)
     {
+        meshr = GetComponent<MeshRenderer>();
         this.Hand = Hand;
         this.instrument = instrument;
     }
     public void UpdateFinger()
     {
-        if (Down) UpdateKeyCollision();
+        if (instrument != null && Down)
+            UpdateKeyCollision();
     }
     public void LateUpdate()
     {
@@ -72,8 +76,6 @@ public class Finger : MonoBehaviour
         {
             foreach (InstrumentKey key in instrument.Keys)
             {
-                if (LastKey == key) continue;
-
                 float dist = Vector3.Distance(transform.position, LastPos);
                 float intersect_dist;
 
@@ -96,11 +98,30 @@ public class Finger : MonoBehaviour
 
         if (on_hit_key != null) on_hit_key(key);
 
-        if (LastKey != null && LastKey != key)
+        bool sustain = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, Hand.controller);
+        if (!sustain)
         {
-            LastKey.Release();
+            ReleaseHeldKeys(key);
         }
-        LastKey = key;
+        if (!held_keys.Contains(key))
+        {
+            held_keys.Add(key);
+        }
+    }
+    private void ReleaseHeldKeys(InstrumentKey exception_key = null)
+    {
+        foreach (InstrumentKey key in held_keys)
+        {
+            if (key == exception_key) continue;
+            key.Release();
+        }
+
+        held_keys.Clear();
+
+        if (exception_key != null)
+        {
+            held_keys.Add(exception_key);
+        }    
     }
 
 

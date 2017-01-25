@@ -33,6 +33,9 @@ public class Instrument : MonoBehaviour
     private Vector2 avg_velocity;
     private float avg_angle;
     private AudioSource ctrl_source;
+    private NoteName[] key_sig = new NoteName[]
+    { NoteName.A, NoteName.B, NoteName.Cs, NoteName.D, NoteName.E, NoteName.Fs, NoteName.G };
+
 
     // Events
     //public Action<InstrumentKey> on_key_hit;
