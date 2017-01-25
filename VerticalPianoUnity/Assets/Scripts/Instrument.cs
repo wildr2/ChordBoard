@@ -30,9 +30,6 @@ public class Instrument : MonoBehaviour
     public AudioClip test_clip;
 
     // Control
-    private Vector2 avg_velocity;
-    private float avg_angle;
-    private AudioSource ctrl_source;
     private NoteName[] key_sig = new NoteName[]
     { NoteName.A, NoteName.B, NoteName.Cs, NoteName.D, NoteName.E, NoteName.Fs, NoteName.G };
 
@@ -203,15 +200,16 @@ public class Instrument : MonoBehaviour
     private void DefineNoteFrequencies()
     {
         // Calculate note frequencies for all octaves  
-        frequencies = new float[mid_frequencies.Length * num_octaves];
+        frequencies = new float[key_sig.Length * num_octaves];
         int mid_octave = num_octaves / 2;
 
         int note_i = 0;
         for (int octave = 0; octave < num_octaves; ++octave)
         {
-            foreach (float freq in mid_frequencies)
+            foreach (NoteName note in key_sig)
             {
-                frequencies[note_i] = freq * Mathf.Pow(2, octave - mid_octave);
+                frequencies[note_i] = mid_frequencies[(int)note] *
+                    Mathf.Pow(2, octave - mid_octave);
                 ++note_i;
             }
         }

@@ -104,18 +104,18 @@ public class HandController : MonoBehaviour
         //fingers[0].transform.localPosition = Vector3.zero;
 
         // Finger 1
-        if (a_down)
-        {
-            fingers[1].Down = true;
-        }
-        else if (a_up)
-        {
-            fingers[1].Down = false;
-        }
-        Quaternion q = OVRInput.GetLocalControllerRotation(controller);
-        float r = Mathf.DeltaAngle(0, q.eulerAngles.z) / 180f;
-        float height = Mathf.CeilToInt((-0.15f - 0.15f * r) / 0.05f) * 0.05f;
-        fingers[1].transform.position = transform.position + Vector3.up * height;
+        //if (a_down)
+        //{
+        //    fingers[1].Down = true;
+        //}
+        //else if (a_up)
+        //{
+        //    fingers[1].Down = false;
+        //}
+        //Quaternion q = OVRInput.GetLocalControllerRotation(controller);
+        //float r = Mathf.DeltaAngle(0, q.eulerAngles.z) / 180f;
+        //float height = Mathf.CeilToInt((-0.15f - 0.15f * r) / 0.05f) * 0.05f;
+        //fingers[1].transform.position = transform.position + Vector3.up * height;
 
 
         //Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, controller); 

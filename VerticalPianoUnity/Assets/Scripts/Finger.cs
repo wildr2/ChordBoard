@@ -72,10 +72,13 @@ public class Finger : MonoBehaviour
         Vector3 p = instrument.transform.InverseTransformPoint(transform.position);
         Vector3 lastp = instrument.transform.InverseTransformPoint(LastPos);
 
+
         if (Mathf.Sign(p.z) != Mathf.Sign(lastp.z))
         {
-            foreach (InstrumentKey key in instrument.Keys)
+            for (int i = 0; i < instrument.Keys.Length; ++i)
             {
+                InstrumentKey key = instrument.Keys[i];
+
                 float dist = Vector3.Distance(transform.position, LastPos);
                 float intersect_dist;
 
@@ -85,7 +88,60 @@ public class Finger : MonoBehaviour
                 {
                     if (intersect_dist < dist)
                     {
+                        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, Hand.controller);
+                        bool stick_touch = OVRInput.Get(OVRInput.Touch.PrimaryThumbstick, Hand.controller);
+
+                        int stick_area = 0;
+                        float angle = Mathf.Atan2(stick.y, stick.x) * Mathf.Rad2Deg;
+                        angle = PosifyAngle(angle);
+                        stick_area = angle < 45 || angle > 315 ? 0 :
+                                     angle < 135 ? 1 :
+                                     angle < 225 ? 2 : 3;
+
+                        //bool mod1 = OVRInput.Get(OVRInput.Button.One);
+                        //bool mod2 = OVRInput.Get(OVRInput.Button.Two);
+                        //int mode = mod1 && mod2 ? 3 : mod1 ? 1 : mod2 ? 2 : 0;
+                        int mode = stick.magnitude <= 0.5f ? 0 : stick_area + 1;
+
+
+
+                        bool sustain = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, Hand.controller);
+                        if (!sustain)
+                        {
+                            ReleaseHeldKeys(key);
+                        }
+
                         PlayKey(key);
+
+                        if (mode == 1)
+                        {
+                            if (i + 2 < instrument.Keys.Length)
+                                PlayKey(instrument.Keys[i + 2]);
+                        }
+                        else if (mode == 2)
+                        {
+                            if (i + 3 < instrument.Keys.Length)
+                                PlayKey(instrument.Keys[i + 3]);
+                        }
+                        else if (mode == 3)
+                        {
+                            if (i + 2 < instrument.Keys.Length &&
+                                i + 4 < instrument.Keys.Length)
+                            {
+                                PlayKey(instrument.Keys[i + 2]);
+                                PlayKey(instrument.Keys[i + 4]);
+                            }
+                        }
+                        else if (mode == 4)
+                        {
+                            if (i + 3 < instrument.Keys.Length &&
+                                i + 5 < instrument.Keys.Length)
+                            {
+                                PlayKey(instrument.Keys[i + 3]);
+                                PlayKey(instrument.Keys[i + 5]);
+                            }
+                        }
+
                         break;
                     }
                 }
@@ -98,11 +154,6 @@ public class Finger : MonoBehaviour
 
         if (on_hit_key != null) on_hit_key(key);
 
-        bool sustain = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, Hand.controller);
-        if (!sustain)
-        {
-            ReleaseHeldKeys(key);
-        }
         if (!held_keys.Contains(key))
         {
             held_keys.Add(key);
@@ -122,6 +173,11 @@ public class Finger : MonoBehaviour
         {
             held_keys.Add(exception_key);
         }    
+    }
+    private float PosifyAngle(float a)
+    {
+        a = a % 360f;
+        return a > 0 ? a : a + 360f;
     }
 
 
