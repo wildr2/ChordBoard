@@ -3,10 +3,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-public enum NoteName { A, As, B, C, Cs, D, Ds, E, F, Fs, G, Gs }
+public enum Note { A, As, B, C, Cs, D, Ds, E, F, Fs, G, Gs }
+public enum NaturalNote { A, B, C, D, E, F, G }
 
 public class Instrument : MonoBehaviour
 {
+    public const int NotesPerOctave = 12;
+    public const int NaturalNotesPerOctave = 7;
+
     // Sound Parameters
     public float gain = 0.05f;
     public float offset;
@@ -25,22 +29,15 @@ public class Instrument : MonoBehaviour
     private float[] frequencies;
 
     // Playback
-    private AudioClip[] clips; // clip for each note across all octaves
+    public InstrumentEmiter emiter_prefab;
+    private AudioClip[] clips; // clip for each possible note across all octaves
+    public InstrumentEmiter[] Emiters { get; private set; } // emiters corresponding to clips
     public InstrumentKey[] Keys { get; private set; }
-    public AudioClip test_clip;
+    
 
     // Control
-    private NoteName[] key_sig = new NoteName[]
-    { NoteName.A, NoteName.B, NoteName.Cs, NoteName.D, NoteName.E, NoteName.Fs, NoteName.G };
-
-
-    // Events
-    //public Action<InstrumentKey> on_key_hit;
-
-
-    // TEST
-    InstrumentKey test_key;
-    HandController test_hand;
+    private Note[] key_sig = new Note[]
+    { Note.A, Note.B, Note.Cs, Note.D, Note.E, Note.Fs, Note.G };
 
 
     // PUBLIC ACCESSORS
@@ -53,13 +50,45 @@ public class Instrument : MonoBehaviour
     {
         return Mathf.Clamp(octave, 0, num_octaves - 1);
     }
-    public bool IsAccidental(NoteName note)
+    public static bool IsAccidental(Note note)
     {
-        return note == NoteName.As
-            || note == NoteName.Cs
-            || note == NoteName.Ds
-            || note == NoteName.Fs
-            || note == NoteName.Gs;
+        return note == Note.As
+            || note == Note.Cs
+            || note == Note.Ds
+            || note == Note.Fs
+            || note == Note.Gs;
+    }
+    public static Note ToggleAccidental(Note note)
+    {
+        switch (note)
+        {
+            case Note.A: return Note.As;
+            case Note.As: return Note.A;
+            case Note.C: return Note.Cs;
+            case Note.Cs: return Note.C;
+            case Note.D: return Note.Ds;
+            case Note.Ds: return Note.D;
+            case Note.F: return Note.Fs;
+            case Note.Fs: return Note.F;
+            case Note.G: return Note.Gs;
+            case Note.Gs: return Note.G;
+            default: return note;
+        }
+    }
+    public static Note NatNoteToNote(NaturalNote nat_note)
+    {
+        switch (nat_note)
+        {
+            case NaturalNote.A: return Note.A;
+            case NaturalNote.B: return Note.B;
+            case NaturalNote.C: return Note.C;
+            case NaturalNote.D: return Note.D;
+            case NaturalNote.E: return Note.E;
+            case NaturalNote.F: return Note.F;
+            case NaturalNote.G: return Note.G;
+
+            default: return Note.A;
+        }
     }
 
 
@@ -69,60 +98,13 @@ public class Instrument : MonoBehaviour
     {
         DefineNoteFrequencies();
         CreateNoteClips();
+        CreateEmiters();
         InitializeKeys();
-
-        test_key = Keys[8];
-        test_hand = FindObjectOfType<HandController>();
     }
     private float PosifyAngle(float a)
     {
         a = a % 360f;
         return a > 0 ? a : a + 360f;
-    }
-    private void Update()
-    {
-        //if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger))
-        //{
-        //    float r = test_hand.transform.localRotation.eulerAngles.z;
-        //    int note_i = (int)((6) *
-        //        Mathf.Clamp01((Mathf.DeltaAngle(r, 0) + 90) / 180f));
-        //    test_key = Keys[note_i];
-
-        //    if (!test_key.AudioSource.isPlaying) test_key.AudioSource.Play();
-        //}
-        //if (OVRInput.Get(OVRInput.Axis1D.SecondaryIndexTrigger) > 0)
-        //{
-        //    if (test_key != null)
-        //    {
-        //        Vector3 v = OVRInput.GetLocalControllerVelocity(OVRInput.Controller.RTouch); //test_hand.transform.position - test_hand.LastPos;
-        //        Quaternion av = OVRInput.GetLocalControllerAngularVelocity(OVRInput.Controller.RTouch);
-        //        test_key.AudioSource.volume = v.magnitude / 3f;
-
-        //        //test_key.AudioSource.pitch = 1 + (Mathf.DeltaAngle(r, 0) / 180f) * 0.1f;
-
-        //        //test_key.AudioSource.volume =
-        //        //    Mathf.Lerp(test_key.AudioSource.volume, 1, Time.deltaTime * 30f);
-        //    }
-        //}
-        //else
-        //{
-        //    test_key = null;
-        //}
-
-        //foreach (InstrumentKey key in Keys)
-        //{
-        //    if (key != test_key)
-        //    {
-        //        key.AudioSource.volume *= 0.8f;
-        //    }
-        //}
-
-
-        //if (Input.GetKeyDown(KeyCode.A))
-        //{
-        //    SetData(test_key.AudioSource.clip, mid_frequencies[(int)test_key.Note]);
-        //}
-
     }
 
     private void SetData(AudioClip clip, float frequency)
@@ -200,15 +182,15 @@ public class Instrument : MonoBehaviour
     private void DefineNoteFrequencies()
     {
         // Calculate note frequencies for all octaves  
-        frequencies = new float[key_sig.Length * num_octaves];
+        frequencies = new float[mid_frequencies.Length * num_octaves];
         int mid_octave = num_octaves / 2;
 
         int note_i = 0;
         for (int octave = 0; octave < num_octaves; ++octave)
         {
-            foreach (NoteName note in key_sig)
+            for (int i = 0; i < mid_frequencies.Length; ++i)
             {
-                frequencies[note_i] = mid_frequencies[(int)note] *
+                frequencies[note_i] = mid_frequencies[i] *
                     Mathf.Pow(2, octave - mid_octave);
                 ++note_i;
             }
@@ -226,21 +208,55 @@ public class Instrument : MonoBehaviour
             clips[i] = clip;
         }
     }
+    private void CreateEmiters()
+    {
+        GameObject folder = new GameObject("Emiters");
+        folder.transform.SetParent(transform);
+        folder.transform.SetAsFirstSibling();
+
+        Emiters = new InstrumentEmiter[frequencies.Length];
+
+        // Create audio sources for each note
+        for (int i = 0; i < frequencies.Length; ++i)
+        {
+            Note note = (Note)(i % Tools.EnumLength(typeof(Note)));
+            int octave = Mathf.FloorToInt(i / (float)NotesPerOctave);
+
+            InstrumentEmiter emiter = Instantiate(emiter_prefab);
+            emiter.transform.SetParent(folder.transform);
+            emiter.Initialize(clips[i], note, octave);
+            emiter.transform.name = "Emiter " + emiter.NoteName;
+            Emiters[i] = emiter;
+        }
+    }
     private void InitializeKeys()
     {
         Keys = GetComponentsInChildren<InstrumentKey>();
 
-        //AudioClip clip = AudioClip.Create("Note", samplerate * 10, 1, samplerate, false);
-        //SetData(clip, frequencies[0]);
-
         // Create audio sources for each note
         for (int i = 0; i < Keys.Length; ++i)
         {
+            int octave = Mathf.FloorToInt(i / (float)NaturalNotesPerOctave);
+            Note note = NatNoteToNote((NaturalNote)i);
+            Note note_sharp = ToggleAccidental(note);
+
             Keys[i].Initialize(
-                (NoteName)(i % Tools.EnumLength(typeof(NoteName))),
-                clips[i]);
-            //float pitch = frequencies[i] / frequencies[0];
-            //Keys[i].AudioSource.pitch = pitch; 
+                Emiters[(int)note + NotesPerOctave * octave],
+                Emiters[(int)note_sharp + NotesPerOctave * octave]);
+        }
+
+        // Setup chords
+        for (int i = 0; i < Keys.Length; ++i)
+        {
+            InstrumentKey[][] chord_keys = new InstrumentKey[5][];
+
+            chord_keys[0] = new InstrumentKey[0];
+            chord_keys[1] = new InstrumentKey[1] { Keys[(i + 1) % Keys.Length] };
+            chord_keys[2] = new InstrumentKey[1] { Keys[(i + 2) % Keys.Length] };
+            chord_keys[3] = new InstrumentKey[1] { Keys[(i + 3) % Keys.Length] };
+            chord_keys[4] = new InstrumentKey[1] { Keys[(i + 4) % Keys.Length] };
+
+            Keys[i].ChordKeys = chord_keys;
         }
     }
 

@@ -11,11 +11,15 @@ public static class Tools
     {
         return new Vector2(v.y, -v.x);
     }
-    public static float PosifyRotation(float rotation)
+    public static float PosifyAngle(float angle)
     {
-        rotation = rotation % (Mathf.PI * 2f);
-
-        return rotation >= 0 ? rotation : rotation + Mathf.PI * 2f;
+        angle = angle % (Mathf.PI * 2f);
+        return angle >= 0 ? angle : angle + Mathf.PI * 2f;
+    }
+    public static float PosifyAngleDeg(float angle)
+    {
+        angle = angle % 360f;
+        return angle >= 0 ? angle : angle + 360f;
     }
     /// <summary>
     /// 0 is north, 1 is north west etc.
@@ -24,7 +28,7 @@ public static class Tools
     /// <returns></returns>
     public static int AngleToEightDirInt(float angle)
     {
-        float a = PosifyRotation(angle) - (Mathf.PI * (2 / 16f));
+        float a = PosifyAngle(angle) - (Mathf.PI * (2 / 16f));
         int dir = (int)(a / (Mathf.PI / 4f)) - 1;
         if (dir == -1) dir = 7;
 

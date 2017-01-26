@@ -4,15 +4,20 @@ using System;
 
 public class InstrumentKey : MonoBehaviour
 {
-    public AudioSource AudioSource { get; private set; }
-    public NoteName Note { get; private set; }
-
-    private SpriteRenderer highlight;
     new private BoxCollider collider;
+    private SpriteRenderer highlight;
     private Color highlight_normal_color;
 
-    private static HandController[] hands;
-    private Finger playing_finger;
+    public bool Sharp { get; set; }
+
+    public InstrumentEmiter Emiter
+    {
+        get { return Sharp ? emiter_sharp : emiter_natural; }
+    }
+    private InstrumentEmiter emiter_natural, emiter_sharp;
+
+    // [mode][i]
+    public InstrumentKey[][] ChordKeys { get; set; }
 
 
     public Bounds GetBounds()
@@ -20,71 +25,27 @@ public class InstrumentKey : MonoBehaviour
         return collider.bounds;
     }
 
-
-    public void Initialize(NoteName note, AudioClip clip)
+    public void Initialize(InstrumentEmiter emiter_natural, InstrumentEmiter emiter_sharp)
     {
-        AudioSource = GetComponent<AudioSource>();
+        this.emiter_natural = emiter_natural;
+        this.emiter_sharp = emiter_sharp;
 
         highlight = GetComponentInChildren<SpriteRenderer>();
         highlight_normal_color = highlight.color;
-
         collider = GetComponentInChildren<BoxCollider>();
-
-        if (hands == null)
+    }
+    public void Play(Finger finger, int mode)
+    {
+        if (mode < 0 || mode > ChordKeys.Length)
         {
-            hands = FindObjectsOfType<HandController>();
+            Debug.LogError("Invalid mode");
+            return;
         }
 
-        Note = note;
-        AudioSource.clip = clip;
-    }
-    public void Play(Finger finger)
-    {
-        StopAllCoroutines();
-        StartCoroutine(FlashHighlight());
-
-        if (!AudioSource.isPlaying) AudioSource.Play();
-        playing_finger = finger;
-        UpdateControl();
-    }
-    public void Release()
-    {
-        //AudioSource.Stop();
-        playing_finger = null;
-    }
-
-    private void Awake()
-    {
-        
-    }
-    private void Update()
-    {
-        UpdateControl();
-    }
-    private void UpdateControl()
-    {
-        if (playing_finger == null)
+        Emiter.Play(finger);
+        foreach (InstrumentKey key in ChordKeys[mode])
         {
-            if (AudioSource.isPlaying)
-            {
-                // Diminish volume quickly
-                AudioSource.volume *= 0.9f;
-                if (AudioSource.volume <= 0.001f)
-                {
-                    AudioSource.Stop();
-                }
-            }
-        }
-        else
-        {
-            float deadzone = 0.025f;
-
-            //Tools.Log(playing_finger.GetVelocity().magnitude + " : " + playing_finger.Hand.GetVelocity().magnitude);
-
-            AudioSource.volume = Mathf.Clamp01(
-                (playing_finger.Hand.GetVelocity().magnitude - deadzone) / (1.5f - deadzone));
-            //Vector3 v = playing_finger.transform.position - playing_finger.LastPos;
-            //AudioSource.volume = Mathf.Clamp01(v.magnitude / 0.01f); 
+            key.Emiter.Play(finger);
         }
     }
 
