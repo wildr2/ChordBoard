@@ -70,31 +70,39 @@ public class Finger : MonoBehaviour
     }
     private void UpdateKeyCollision()
     {
-        Vector3 p = instrument.transform.InverseTransformPoint(transform.position);
-        Vector3 lastp = instrument.transform.InverseTransformPoint(LastPos);
-
-
-        if (Mathf.Sign(p.z) != Mathf.Sign(lastp.z))
+        for (int pi = 0; pi < instrument.Keys.Length; ++pi)
         {
-            for (int i = 0; i < instrument.Keys.Length; ++i)
+            Transform panel = instrument.Keys[pi][0][0].transform.parent.parent;
+
+            Vector3 p = panel.transform.InverseTransformPoint(transform.position);
+            Vector3 lastp = panel.transform.InverseTransformPoint(LastPos);
+
+            if (Mathf.Sign(p.z) != Mathf.Sign(lastp.z))
             {
-                InstrumentKey key = instrument.Keys[i];
-
-                float dist = Vector3.Distance(transform.position, LastPos);
-                float intersect_dist;
-
-                Ray ray = new Ray(LastPos, transform.position - LastPos);
-
-                if (key.GetBounds().IntersectRay(ray, out intersect_dist))
+                for (int i = 0; i < instrument.Keys[pi].Length; ++i)
                 {
-                    if (intersect_dist < dist)
+                    for (int j = 0; j < instrument.Keys[pi][i].Length; ++j)
                     {
-                        OnTouchKey(key);
-                        break;
+                        InstrumentKey key = instrument.Keys[pi][i][j];
+
+                        float dist = Vector3.Distance(transform.position, LastPos);
+                        float intersect_dist;
+
+                        Ray ray = new Ray(LastPos, transform.position - LastPos);
+
+                        if (key.GetBounds().IntersectRay(ray, out intersect_dist))
+                        {
+                            if (intersect_dist < dist)
+                            {
+                                OnTouchKey(key);
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
+        
     }
     private void OnTouchKey(InstrumentKey key)
     {

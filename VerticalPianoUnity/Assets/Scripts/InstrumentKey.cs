@@ -5,8 +5,8 @@ using System;
 public class InstrumentKey : MonoBehaviour
 {
     new private BoxCollider collider;
-    private SpriteRenderer highlight;
-    private Color highlight_normal_color;
+    private SpriteRenderer spriter;
+    private Color color;
 
     public bool Sharp { get; set; }
 
@@ -25,13 +25,14 @@ public class InstrumentKey : MonoBehaviour
         return collider.bounds;
     }
 
-    public void Initialize(InstrumentEmiter emiter_natural, InstrumentEmiter emiter_sharp)
+    public void Initialize(InstrumentEmiter emiter_natural, InstrumentEmiter emiter_sharp, Color color)
     {
         this.emiter_natural = emiter_natural;
         this.emiter_sharp = emiter_sharp;
 
-        highlight = GetComponentInChildren<SpriteRenderer>();
-        highlight_normal_color = highlight.color;
+        spriter = GetComponentInChildren<SpriteRenderer>();
+        this.color = color;
+        spriter.color = color;
         collider = GetComponentInChildren<BoxCollider>();
     }
     public void Play(Finger finger, int mode)
@@ -43,12 +44,15 @@ public class InstrumentKey : MonoBehaviour
         }
 
         PlayPrimary(finger);
-        
+
         // Chord
-        foreach (InstrumentKey key in ChordKeys[mode])
+        if (ChordKeys != null && mode < ChordKeys.Length && ChordKeys[mode] != null)
         {
-            key.PlayPrimary(finger);
-        }
+            foreach (InstrumentKey key in ChordKeys[mode])
+            {
+                key.PlayPrimary(finger);
+            }
+        }   
     }
     private void PlayPrimary(Finger finger)
     {
@@ -65,8 +69,8 @@ public class InstrumentKey : MonoBehaviour
 
         for (float t = 0; t < 1; t += Time.deltaTime)
         {
-            //highlight.material.SetColor("_Color", Color.Lerp(c1, Color.clear, t));
-            highlight.color = Color.Lerp(c1, highlight_normal_color, t);
+            //spriter.material.SetColor("_Color", Color.Lerp(c1, Color.clear, t));
+            spriter.color = Color.Lerp(c1, color, t);
             yield return null;
         }
     }
