@@ -109,11 +109,10 @@ public class Finger : MonoBehaviour
     private void PlayKey(InstrumentKey key)
     {
         Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, Hand.controller);
-        bool stick_touch = OVRInput.Get(OVRInput.Touch.PrimaryThumbstick, Hand.controller);
 
         int stick_area = 0;
         float angle = Mathf.Atan2(stick.y, stick.x) * Mathf.Rad2Deg;
-        angle = Tools.PosifyAngle(angle);
+        angle = Tools.PosifyAngleDeg(angle);
         stick_area = angle < 45 || angle > 315 ? 0 :
                      angle < 135 ? 1 :
                      angle < 225 ? 2 : 3;

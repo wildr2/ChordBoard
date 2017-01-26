@@ -33,10 +33,12 @@ public class Instrument : MonoBehaviour
     private AudioClip[] clips; // clip for each possible note across all octaves
     public InstrumentEmiter[] Emiters { get; private set; } // emiters corresponding to clips
     public InstrumentKey[] Keys { get; private set; }
-    
+
+    // Graphics
+    public Color[] note_colors;
 
     // Control
-    private Note[] key_sig = new Note[]
+    private List<Note> key_sig = new List<Note> // DEBUG
     { Note.A, Note.B, Note.Cs, Note.D, Note.E, Note.Fs, Note.G };
 
 
@@ -100,6 +102,17 @@ public class Instrument : MonoBehaviour
         CreateNoteClips();
         CreateEmiters();
         InitializeKeys();
+
+        // DEBUG key sig
+        for (int i = 0; i < Keys.Length; ++i)
+        {
+            Note note = Keys[i].Emiter.Note;
+            if (!key_sig.Contains(note))
+            {
+                Keys[i].Sharp = !Keys[i].Sharp; 
+            }
+        }
+        
     }
     private float PosifyAngle(float a)
     {
@@ -237,7 +250,7 @@ public class Instrument : MonoBehaviour
         for (int i = 0; i < Keys.Length; ++i)
         {
             int octave = Mathf.FloorToInt(i / (float)NaturalNotesPerOctave);
-            Note note = NatNoteToNote((NaturalNote)i);
+            Note note = NatNoteToNote((NaturalNote)(i % NaturalNotesPerOctave));
             Note note_sharp = ToggleAccidental(note);
 
             Keys[i].Initialize(

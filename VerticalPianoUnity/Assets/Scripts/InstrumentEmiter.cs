@@ -35,6 +35,10 @@ public class InstrumentEmiter : MonoBehaviour
         UpdateControl();
     }
 
+    private void Update()
+    {
+        UpdateControl();
+    }
     private void UpdateControl()
     {
         if (ControlFinger == null)

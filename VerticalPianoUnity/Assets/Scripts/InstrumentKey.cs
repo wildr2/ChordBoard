@@ -42,17 +42,25 @@ public class InstrumentKey : MonoBehaviour
             return;
         }
 
-        Emiter.Play(finger);
+        PlayPrimary(finger);
+        
+        // Chord
         foreach (InstrumentKey key in ChordKeys[mode])
         {
-            key.Emiter.Play(finger);
+            key.PlayPrimary(finger);
         }
+    }
+    private void PlayPrimary(Finger finger)
+    {
+        Emiter.Play(finger);
+
+        // Graphics
+        StopAllCoroutines();
+        StartCoroutine(FlashHighlight());
     }
 
     private IEnumerator FlashHighlight()
     {
-        //highlight.enabled = true;
-
         Color c1 = new Color(1, 1, 1, 0.2f);
 
         for (float t = 0; t < 1; t += Time.deltaTime)
@@ -61,7 +69,5 @@ public class InstrumentKey : MonoBehaviour
             highlight.color = Color.Lerp(c1, highlight_normal_color, t);
             yield return null;
         }
-
-        //highlight.enabled = false;
     }
 }
