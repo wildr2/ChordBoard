@@ -32,6 +32,7 @@ public class InstrumentEmiter : MonoBehaviour
         {
             AudioSource.Play();
         }
+        AudioSource.volume = 1;
         UpdateControl();
     }
 
@@ -55,13 +56,15 @@ public class InstrumentEmiter : MonoBehaviour
         }
         else
         {
-            float v = ControlFinger.Hand.GetVelocity().magnitude;
-            AudioSource.volume = Mathf.Clamp01(
-                (v - control_deadzone) / (1.5f - control_deadzone));
+            //float v = ControlFinger.Hand.GetVelocity().magnitude;
+            //AudioSource.volume = Mathf.Clamp01(
+            //    (v - control_deadzone) / (1.5f - control_deadzone));
+            AudioSource.volume *= 0.99f;
         }
     }
     private void OnFingerRelease()
     {
+        ControlFinger.on_release -= OnFingerRelease;
         ControlFinger = null;
     }
 }

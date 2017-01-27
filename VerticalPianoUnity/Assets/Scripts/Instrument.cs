@@ -249,7 +249,7 @@ public class Instrument : MonoBehaviour
     }
     private void CreateKeys()
     {
-        Keys = new InstrumentKey[2][][];
+        Keys = new InstrumentKey[1][][];
 
         float panel_spacing = 0.2f;
         float board_spacing = 0.01f;
@@ -257,7 +257,7 @@ public class Instrument : MonoBehaviour
         float key_w = 0.1f;
         float key_h = 0.05f * 0.75f;
 
-        for (int panel_i = 0; panel_i < 2; ++panel_i)
+        for (int panel_i = 0; panel_i < Keys.Length; ++panel_i)
         {
             //Panel
             GameObject panel = new GameObject("Panel " + panel_i);

@@ -12,6 +12,7 @@ public class Finger : MonoBehaviour
     public HandController Hand { get; private set; }
     private Instrument instrument;
 
+    private InstrumentKey in_key;
     private bool down;
     public bool Down
     {
@@ -26,6 +27,7 @@ public class Finger : MonoBehaviour
             {
                 trail.time = 1.5f;
                 meshr.material.SetColor("_Color", down_color);
+                if (in_key != null) OnTouchKey(in_key);
             }
             else
             {
@@ -55,8 +57,26 @@ public class Finger : MonoBehaviour
     }
     public void UpdateFinger()
     {
-        if (instrument != null && Down)
-            UpdateKeyCollision();
+        //if (instrument != null)
+        //    UpdateKeyCollision();
+
+        Vector3 dir = instrument.transform.forward;
+        DebugLineDrawer.Draw(transform.position, transform.position + dir * 0.1f, Color.white, 0, 0.001f);
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            //Bounds b = instrument.Keys[0][0][0].GetBounds();
+            //Tools.Log("center " + b.center);
+            //Tools.Log("size " + b.size);
+            //Tools.Log("min " + b.min);
+            //Tools.Log("max " + b.max);
+
+            PlayKey(instrument.Keys[0][0][0]);
+        }
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Release();
+        }
     }
     
 
@@ -70,39 +90,60 @@ public class Finger : MonoBehaviour
     }
     private void UpdateKeyCollision()
     {
+        float closest_dist = float.MaxValue;
+        InstrumentKey closest = null;
+
         for (int pi = 0; pi < instrument.Keys.Length; ++pi)
         {
             Transform panel = instrument.Keys[pi][0][0].transform.parent.parent;
 
-            Vector3 p = panel.transform.InverseTransformPoint(transform.position);
-            Vector3 lastp = panel.transform.InverseTransformPoint(LastPos);
-
-            if (Mathf.Sign(p.z) != Mathf.Sign(lastp.z))
+            for (int i = 0; i < instrument.Keys[pi].Length; ++i)
             {
-                for (int i = 0; i < instrument.Keys[pi].Length; ++i)
+                for (int j = 0; j < instrument.Keys[pi][i].Length; ++j)
                 {
-                    for (int j = 0; j < instrument.Keys[pi][i].Length; ++j)
+                    InstrumentKey key = instrument.Keys[pi][i][j];
+
+                    // Proximity Calculation
+                    float d = Vector3.Distance(transform.position, key.transform.position);
+                    if (d < closest_dist)
                     {
-                        InstrumentKey key = instrument.Keys[pi][i][j];
-
-                        float dist = Vector3.Distance(transform.position, LastPos);
-                        float intersect_dist;
-
-                        Ray ray = new Ray(LastPos, transform.position - LastPos);
-
-                        if (key.GetBounds().IntersectRay(ray, out intersect_dist))
-                        {
-                            if (intersect_dist < dist)
-                            {
-                                OnTouchKey(key);
-                                break;
-                            }
-                        }
+                        closest_dist = d;
+                        closest = key;
                     }
+
+                    // Collision
+                    if (Down)
+                    {
+                        if (key.IntersectLine(transform.position, LastPos))
+                        {
+                            OnTouchKey(key);
+                        }
+                    }                
                 }
             }
         }
-        
+
+        // Vibration
+        //float dist_y = Mathf.Abs(transform.position.y - closest.transform.position.y);
+        //float x = Mathf.Pow(Mathf.Clamp01(dist_y * 50f), 2);
+        //if (dist_y > 0.1f || closest_dist > 0.5f) x = 0;
+
+        //Color key_c = closest.GetColor();
+        //key_c.a = 1;
+        //Color c = key_c;
+        //float width = Mathf.Lerp(0.005f, 0.001f, x);
+
+        //Vector3 p0 = transform.position;
+        //Vector3 p1 = closest.transform.position;
+        //p1.y = p0.y;
+        //p1.x = p0.x;
+        //Vector3 dir = (p1 - p0).normalized;
+        //p0 -= dir * 10f;
+        //p1 += dir * 10f;
+
+        //DebugLineDrawer.Draw(p0, p1, c, 0, width);
+        //OVRInput.SetControllerVibration(10f, x);
+
     }
     private void OnTouchKey(InstrumentKey key)
     {
@@ -134,5 +175,31 @@ public class Finger : MonoBehaviour
     {
         if (on_release != null)
             on_release();
+    }
+
+    private void OnTriggerEnter(Collider collider)
+    {
+        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+        if (key != null)
+        {
+            in_key = key;
+            //if (Down) OnTouchKey(key);
+        }
+    }
+    private void OnTriggerExit(Collider collider)
+    {
+        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+        if (key != null)
+        {
+            if (key == in_key) in_key = null;
+        }
+    }
+    private void OnTriggerStay(Collider collider)
+    {
+        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+        if (key != null)
+        {
+            in_key = key;
+        }
     }
 }
