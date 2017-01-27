@@ -25,6 +25,11 @@ public class InstrumentEmiter : MonoBehaviour
     }
     public void Play(Finger finger)
     {
+        if (ControlFinger != null)
+        {
+            OnFingerRelease();
+        }
+
         ControlFinger = finger;
         finger.on_release += OnFingerRelease;
 
