@@ -5,13 +5,16 @@ using System;
 
 public class Finger : MonoBehaviour
 {
-    private MeshRenderer meshr;
-    private TrailRenderer trail;
     public Color down_color;
 
-    public HandController Hand { get; private set; }
-    private Instrument instrument;
+    private MeshRenderer meshr;
+    private TrailRenderer trail;
+    private LineRenderer line;
 
+    private Instrument instrument;
+    public HandController Hand { get; private set; }
+
+    // General State 
     private InstrumentKey in_key;
     private bool down;
     public bool Down
@@ -39,6 +42,11 @@ public class Finger : MonoBehaviour
     }
     public Vector3 LastPos { get; private set; }
 
+    // Input
+    private Vector2 input_stick;
+    private float input_index; 
+
+    // Events
     public Action<InstrumentKey> on_hit_key;
     public Action on_release;
 
@@ -51,18 +59,21 @@ public class Finger : MonoBehaviour
 
     public void Initialize(HandController Hand, Instrument instrument)
     {
-        meshr = GetComponent<MeshRenderer>();
         this.Hand = Hand;
         this.instrument = instrument;
+
+        meshr = GetComponent<MeshRenderer>();
+        line = GetComponent<LineRenderer>();
     }
     public void UpdateFinger()
     {
+        UpdateInput();
+        UpdateLine();
+
         //if (instrument != null)
         //    UpdateKeyCollision();
 
-        Vector3 dir = instrument.transform.forward;
-        DebugLineDrawer.Draw(transform.position, transform.position + dir * 0.1f, Color.white, 0, 0.001f);
-
+        // DEBUG
         if (Input.GetKeyDown(KeyCode.Space))
         {
             //Bounds b = instrument.Keys[0][0][0].GetBounds();
@@ -78,7 +89,6 @@ public class Finger : MonoBehaviour
             Release();
         }
     }
-    
 
     private void Awake()
     {
@@ -87,6 +97,58 @@ public class Finger : MonoBehaviour
     private void LateUpdate()
     {
         LastPos = transform.position;
+    }
+    private void UpdateInput()
+    {
+        Vector2 prev_stick = input_stick;
+        float prev_index = input_index;
+
+        float index = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, Hand.controller);
+        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, Hand.controller);
+
+        //bool indexdown = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, controller);
+        //bool indexup = OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger, controller);
+        //bool sticktouchdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbstick, controller);
+        //bool sticktouchup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbstick, controller);
+        //bool thumbrestdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbRest, controller);
+        //bool thumbrestup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbRest, controller);
+        //bool thumbrest = OVRInput.Get(OVRInput.Touch.PrimaryThumbRest, controller);
+        //float hand = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, controller);
+        //bool a_down = OVRInput.GetDown(OVRInput.Button.One, controller);
+        //bool a_up = OVRInput.GetUp(OVRInput.Button.One, controller);
+        //bool b_down = OVRInput.GetDown(OVRInput.Button.Two, controller);
+        //bool b_up = OVRInput.GetUp(OVRInput.Button.Two, controller);
+
+        float stick_point = 0.75f;
+        float trigger_point = 0f;
+
+        if ((stick.magnitude > stick_point && prev_stick.magnitude <= stick_point) ||
+            (input_index > trigger_point && prev_index <= trigger_point))
+        {
+            Down = true;
+        }
+        if (stick.magnitude <= stick_point && input_index <= trigger_point)
+        {
+            if (Down) Down = false;
+        }
+    }
+    private void UpdateLine()
+    {
+        Plane plane = new Plane(instrument.transform.forward, instrument.transform.position);
+        Vector3 dir = -instrument.transform.forward;
+        Ray ray = new Ray(transform.position, dir);
+        float dist;
+
+        if (plane.Raycast(ray, out dist))
+        {
+            line.enabled = true;
+            line.SetPosition(0, transform.position);
+            line.SetPosition(1, transform.position + dir * dist);
+        }
+        else
+        {
+            line.enabled = false;
+        }
     }
     private void UpdateKeyCollision()
     {

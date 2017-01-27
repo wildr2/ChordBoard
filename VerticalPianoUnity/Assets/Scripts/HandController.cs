@@ -53,74 +53,10 @@ public class HandController : MonoBehaviour
         }
 
         // Fingers
-        UpdateFingerInput();
         for (int i = 0; i < fingers.Length; ++i)
         {
             fingers[i].UpdateFinger();
         }
-
-        // Instrument attach
-        //if (LastKey != null)
-        //{
-        //    Vector3 pos = transform.position;
-        //    Vector3 instr_pos = instrument.transform.position;
-
-        //    Vector3 instr_pos_ls = instrument.transform.InverseTransformPoint(instr_pos);
-        //    Vector3 hand_pos_ls = instrument.transform.InverseTransformPoint(pos);
-
-        //    //instrument.transform.rotation = Quaternion.LookRotation(GetVelocity().normalized);
-
-
-        //    float dif = instr_pos_ls.z - hand_pos_ls.z;
-        //    float max_dist = 0.005f;
-
-        //    if (Mathf.Abs(dif) > max_dist)
-        //    {
-        //        Vector3 new_instr_pos_ls = instr_pos_ls;
-        //        new_instr_pos_ls.z = hand_pos_ls.z + Mathf.Sign(dif) * max_dist;
-
-        //        instrument.transform.position = instrument.transform.TransformPoint(new_instr_pos_ls);
-        //    }
-        //}
-    }
-    private void UpdateFingerInput()
-    {
-        bool index = OVRInput.Get(OVRInput.Button.PrimaryIndexTrigger, controller);
-        bool indexdown = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, controller);
-        bool indexup = OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger, controller);
-        bool sticktouchdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbstick, controller);
-        bool sticktouchup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbstick, controller);
-        bool thumbrestdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbRest, controller);
-        bool thumbrestup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbRest, controller);
-        bool thumbrest = OVRInput.Get(OVRInput.Touch.PrimaryThumbRest, controller);
-        float hand = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, controller);
-        //bool a_down = OVRInput.GetDown(OVRInput.Button.One, controller);
-        //bool a_up = OVRInput.GetUp(OVRInput.Button.One, controller);
-        //bool b_down = OVRInput.GetDown(OVRInput.Button.Two, controller);
-        //bool b_up = OVRInput.GetUp(OVRInput.Button.Two, controller);
-
-        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, controller);
-
-
-        // Finger 0
-        //if (thumbrestdown)
-        //{
-        //    fingers[0].Down = true;
-        //}
-        //else if (thumbrestup)
-        //{
-        //    fingers[0].Down = false;
-        //}
-
-        if (stick.magnitude > 0.75f || index)
-        {
-            if (!fingers[0].Down) fingers[0].Down = true;
-        }
-        else
-        {
-            if (fingers[0].Down) fingers[0].Down = false;
-        }
-
     }
     private IEnumerator UpdateGrabInstrument()
     {
