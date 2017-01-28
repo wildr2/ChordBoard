@@ -83,7 +83,7 @@ public class InstrumentKey : MonoBehaviour
     }
     private void Update()
     {
-        if (Emiter.AudioSource.isPlaying)
+        if (Emiter != null && Emiter.AudioSource.isPlaying)
         {
             if (!shape.gameObject.activeInHierarchy)
                 shape.gameObject.SetActive(true);
@@ -93,7 +93,7 @@ public class InstrumentKey : MonoBehaviour
             shape.transform.localScale = s;
 
             Vector3 p = shape.transform.localPosition;
-            p.z = s.z / 2f;
+            p.z = -s.z / 2f;
             shape.transform.localPosition = p; 
         }
         else

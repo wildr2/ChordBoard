@@ -274,11 +274,6 @@ public class Instrument : MonoBehaviour
         float key_h = query_key.GetBounds().size.y;
         Destroy(query_key.gameObject);
 
-        
-        // Curve
-        float curve_r = 0.5f;
-        float total_w = key_w * (keys_per_board + key_spacing);
-
 
         // Create
         int key_num = 0;
@@ -300,9 +295,6 @@ public class Instrument : MonoBehaviour
                 board.transform.localPosition = new Vector3(0, (key_h + board_spacing) * -b, 0);
                 board.transform.localRotation = Quaternion.identity;
 
-                Vector3 curve_center = board.transform.position
-                    + board.transform.forward * curve_r;
-
                 // Keys
                 Keys[p][b] = new InstrumentKey[keys_per_board];
                 for (int k = 0; k < keys_per_board; ++k)
@@ -316,17 +308,6 @@ public class Instrument : MonoBehaviour
                     key.transform.SetParent(board.transform);
                     key.transform.localPosition = new Vector3(k * (key_w + key_spacing), 0, 0);
                     key.transform.localRotation = Quaternion.identity;
-
-                    //float arc_len = ((float)k / keys_per_board) * total_w;
-                    //float angle = arc_len / curve_r;
-                    //Vector2 circle_pos = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * curve_r;
-                    //key.transform.position = curve_center - board.transform.forward * circle_pos.y +
-                    //    board.transform.right * circle_pos.x;
-
-                    //key.transform.rotation = Quaternion.LookRotation(curve_center - key.transform.position);
-                    //Vector3 eulers = key.transform.localRotation.eulerAngles;
-                    //eulers.z = 0;
-                    //key.transform.localRotation = Quaternion.Euler(eulers);
 
                     key.Initialize(
                         Emiters[(int)note + NotesPerOctave * octave],

@@ -15,13 +15,15 @@ public class Finger : MonoBehaviour
     public HandController Hand { get; private set; }
 
     // General State 
+    private bool play_next = false;
     private InstrumentKey in_key;
     public bool Down { get; private set; }
     public Vector3 LastPos { get; private set; }
 
     // Input
     private Vector2 input_stick;
-    private float input_index; 
+    private float input_index;
+    private float input_hand;
 
     // Events
     public Action<InstrumentKey> on_hit_key;
@@ -45,7 +47,7 @@ public class Finger : MonoBehaviour
     public void UpdateFinger()
     {
         UpdateInput();
-        UpdateKeyCollision();
+        UpdateLine();
 
         // DEBUG
         if (Input.GetKeyDown(KeyCode.Space))
@@ -76,9 +78,11 @@ public class Finger : MonoBehaviour
     {
         Vector2 prev_stick = input_stick;
         float prev_index = input_index;
+        float prev_hand = input_hand;
 
         input_index = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, Hand.controller);
         input_stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, Hand.controller);
+        input_hand = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, Hand.controller);
         bool sustain = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, Hand.controller);
 
         //bool indexdown = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, controller);
@@ -95,40 +99,55 @@ public class Finger : MonoBehaviour
         //bool b_up = OVRInput.GetUp(OVRInput.Button.Two, controller);
 
         float stick_point = 0.75f;
-        float trigger_point = 0f;
+        float index_point = 0f;
+        float hand_point = 0;
 
         bool stick = input_stick.magnitude > stick_point;
-        bool index = input_index > trigger_point;
+        bool index = input_index > index_point;
+        bool hand = input_hand > hand_point;
         bool stick_down = stick && prev_stick.magnitude <= stick_point;
-        bool index_down = index && prev_index <= trigger_point;
+        bool index_down = index && prev_index <= index_point;
+        bool hand_down = hand && prev_hand <= index_point;
 
-        if (stick_down || index_down)
+        if (stick_down || index_down || hand_down)
         {
-            // Down
-            Down = true;
-
-            trail.time = 1.5f;
-            meshr.material.SetColor("_Color", down_color);
-
-            if (!sustain) Release();
-            if (in_key != null)
+            if (in_key != null && in_key.Emiter.ControlFinger == this)
             {
-                int mode = 0;
-                if (stick_down)
-                {
-                    int stick_area = 0;
-                    float angle = Mathf.Atan2(input_stick.y, input_stick.x) * Mathf.Rad2Deg;
-                    angle = Tools.PosifyAngleDeg(angle);
-                    stick_area = angle < 45 || angle > 315 ? 0 :
-                                 angle < 135 ? 1 :
-                                 angle < 225 ? 2 : 3;
+                //play_next = true;
+                if (stick_down) input_stick = prev_stick;
+                if (index_down) input_index = prev_index;
+                if (hand_down) input_hand = prev_hand;
+            }
+            else
+            {
+                // Down
+                Down = true;
 
-                    mode = stick_area + 1;
+                trail.time = 1.5f;
+                meshr.material.SetColor("_Color", down_color);
+
+                //if (!sustain) Release();
+                Release();
+
+                if (in_key != null)
+                {
+                    int mode = 0;
+                    if (stick_down)
+                    {
+                        int stick_area = 0;
+                        float angle = Mathf.Atan2(input_stick.y, input_stick.x) * Mathf.Rad2Deg;
+                        angle = Tools.PosifyAngleDeg(angle);
+                        stick_area = angle < 45 || angle > 315 ? 0 :
+                                     angle < 135 ? 1 :
+                                     angle < 225 ? 2 : 3;
+
+                        mode = stick_area + 1;
+                    }
+                    PlayKey(in_key, mode);
                 }
-                PlayKey(in_key, mode);
             }
         }
-        if (!stick && !index)
+        if (!stick && !index && !hand)
         {
             // Up
             if (Down) Down = false;
@@ -141,53 +160,17 @@ public class Finger : MonoBehaviour
     private void UpdateLine()
     {
         Plane plane = new Plane(instrument.transform.forward, instrument.transform.position);
-        Vector3 dir = -instrument.transform.forward;
+        Vector3 dir = instrument.transform.forward;
         Ray ray = new Ray(transform.position, dir);
         float dist;
 
         if (plane.Raycast(ray, out dist))
         {
-            line.enabled = true;
             line.SetPosition(0, transform.position);
             line.SetPosition(1, transform.position + dir * dist);
         }
         else
         {
-            line.enabled = false;
-        }
-    }
-    private void UpdateKeyCollision()
-    {
-        Vector3 fingerpos = transform.position;
-        Vector3 curve_center = instrument.transform.position +
-            instrument.transform.forward * 0.5f;
-
-        curve_center = instrument.transform.InverseTransformPoint(curve_center);
-        fingerpos = instrument.transform.InverseTransformPoint(fingerpos);
-        curve_center.y = fingerpos.y;
-        curve_center = instrument.transform.TransformPoint(curve_center);
-        fingerpos = instrument.transform.TransformPoint(fingerpos);
-
-        Vector3 ray_dir = (transform.position - curve_center).normalized;
-
-        Ray ray = new Ray(transform.position, ray_dir);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, 100))
-        {
-            InstrumentKey key = hit.collider.GetComponentInParent<InstrumentKey>();
-            if (key != null)
-            {
-                // Collision
-                in_key = key;
-
-                line.SetPosition(0, transform.position);
-                line.SetPosition(1, transform.position + ray_dir * hit.distance);
-            }
-        }
-        else
-        {
-            in_key = null;
         }
     }
     private void PlayKey(InstrumentKey key, int mode)
@@ -201,28 +184,42 @@ public class Finger : MonoBehaviour
             on_release();
     }
 
-    //private void OnTriggerEnter(Collider collider)
-    //{
-    //    InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
-    //    if (key != null)
-    //    {
-    //        in_key = key;
-    //    }
-    //}
-    //private void OnTriggerExit(Collider collider)
-    //{
-    //    InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
-    //    if (key != null)
-    //    {
-    //        if (key == in_key) in_key = null;
-    //    }
-    //}
-    //private void OnTriggerStay(Collider collider)
-    //{
-    //    InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
-    //    if (key != null)
-    //    {
-    //        in_key = key;
-    //    }
-    //}
+    private void OnTriggerEnter(Collider collider)
+    {
+        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+        if (key != null)
+        {
+            in_key = key;
+        }
+    }
+    private void OnTriggerExit(Collider collider)
+    {
+        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+        if (key != null)
+        {
+            if (key == in_key) in_key = null;
+        }
+    }
+    private void OnTriggerStay(Collider collider)
+    {
+        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+        if (key != null)
+        {
+            //if (key != in_key)
+            //{
+            //    if (play_next)
+            //    {
+            //        Release();
+            //        PlayKey(in_key, 0);
+            //    }
+            //}
+
+            in_key = key;
+            
+            //if (OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, Hand.controller))
+            //{
+            //    PlayKey(in_key, 0);
+            //}
+        }
+    }
 }
