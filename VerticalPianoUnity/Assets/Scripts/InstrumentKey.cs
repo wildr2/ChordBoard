@@ -10,6 +10,8 @@ public class InstrumentKey : MonoBehaviour
     private Color color;
 
     public bool Sharp { get; set; }
+    public Finger ControlFinger { get; private set; }
+    public int LastPlayedMode { get; private set; }
 
     public InstrumentEmiter Emiter
     {
@@ -57,6 +59,16 @@ public class InstrumentKey : MonoBehaviour
         }
 
         PlayPrimary(finger);
+        LastPlayedMode = mode;
+
+        if (ControlFinger != null)
+        {
+            OnFingerRelease();
+        }
+
+        ControlFinger = finger;
+        finger.on_release += OnFingerRelease;
+
 
         // Chord
         if (ChordKeys != null && mode < ChordKeys.Length && ChordKeys[mode] != null)
@@ -70,10 +82,6 @@ public class InstrumentKey : MonoBehaviour
     private void PlayPrimary(Finger finger)
     {
         Emiter.Play(finger);
-
-        // Graphics
-        StopAllCoroutines();
-        //StartCoroutine(FlashHighlight());
     }
 
     private void Awake()
@@ -83,7 +91,7 @@ public class InstrumentKey : MonoBehaviour
     }
     private void Update()
     {
-        if (Emiter != null && Emiter.AudioSource.isPlaying)
+        if (Emiter.AudioSource.isPlaying)
         {
             if (!shape.gameObject.activeInHierarchy)
                 shape.gameObject.SetActive(true);
@@ -102,15 +110,9 @@ public class InstrumentKey : MonoBehaviour
                 shape.gameObject.SetActive(false);
         }
     }
-    private IEnumerator FlashHighlight()
+    private void OnFingerRelease()
     {
-        Color c1 = new Color(1, 1, 1, 0.2f);
-
-        for (float t = 0; t < 1; t += Time.deltaTime)
-        {
-            //spriter.material.SetColor("_Color", Color.Lerp(c1, Color.clear, t));
-            spriter.color = Color.Lerp(c1, color, t);
-            yield return null;
-        }
+        ControlFinger.on_release -= OnFingerRelease;
+        ControlFinger = null;
     }
 }

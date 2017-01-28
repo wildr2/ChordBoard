@@ -353,6 +353,14 @@ public class Instrument : MonoBehaviour
         x||||x 
         x|x||x     
         x|||||x
+
+        x||x||x
+        x|||x|x
+        x||||||x
+        x|x|||x
+        
+        
+
             
         */
 

@@ -15,15 +15,18 @@ public class Finger : MonoBehaviour
     public HandController Hand { get; private set; }
 
     // General State 
-    private bool play_next = false;
     private InstrumentKey in_key;
     public bool Down { get; private set; }
     public Vector3 LastPos { get; private set; }
 
     // Input
     private Vector2 input_stick;
+    private int stick_area;
     private float input_index;
     private float input_hand;
+    private float stick_boundary = 0.75f;
+    private float idex_boundary = 0f;
+    private float hand_boundary = 0;
 
     // Events
     public Action<InstrumentKey> on_hit_key;
@@ -77,85 +80,72 @@ public class Finger : MonoBehaviour
     private void UpdateInput()
     {
         Vector2 prev_stick = input_stick;
+        int prev_stick_area = stick_area;
         float prev_index = input_index;
         float prev_hand = input_hand;
 
         input_index = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, Hand.controller);
         input_stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, Hand.controller);
         input_hand = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, Hand.controller);
-        bool sustain = OVRInput.Get(OVRInput.Button.PrimaryHandTrigger, Hand.controller);
 
-        //bool indexdown = OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, controller);
-        //bool indexup = OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger, controller);
-        //bool sticktouchdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbstick, controller);
-        //bool sticktouchup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbstick, controller);
-        //bool thumbrestdown = OVRInput.GetDown(OVRInput.Touch.PrimaryThumbRest, controller);
-        //bool thumbrestup = OVRInput.GetUp(OVRInput.Touch.PrimaryThumbRest, controller);
-        //bool thumbrest = OVRInput.Get(OVRInput.Touch.PrimaryThumbRest, controller);
-        //float hand = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, controller);
-        //bool a_down = OVRInput.GetDown(OVRInput.Button.One, controller);
-        //bool a_up = OVRInput.GetUp(OVRInput.Button.One, controller);
-        //bool b_down = OVRInput.GetDown(OVRInput.Button.Two, controller);
-        //bool b_up = OVRInput.GetUp(OVRInput.Button.Two, controller);
+        float stick_angle = Mathf.Atan2(input_stick.y, input_stick.x) * Mathf.Rad2Deg;
+        stick_angle = Tools.PosifyAngleDeg(stick_angle);
+        stick_area = stick_angle < 45 || stick_angle > 315 ? 0 :
+                     stick_angle < 135 ? 1 :
+                     stick_angle < 225 ? 2 : 3;
 
-        float stick_point = 0.75f;
-        float index_point = 0f;
-        float hand_point = 0;
 
-        bool stick = input_stick.magnitude > stick_point;
-        bool index = input_index > index_point;
-        bool hand = input_hand > hand_point;
-        bool stick_down = stick && prev_stick.magnitude <= stick_point;
-        bool index_down = index && prev_index <= index_point;
-        bool hand_down = hand && prev_hand <= index_point;
-
-        if (stick_down || index_down || hand_down)
+        if (in_key != null)
         {
-            if (in_key != null && in_key.Emiter.ControlFinger == this)
+            bool stick = input_stick.magnitude > stick_boundary;
+            bool index = input_index > idex_boundary;
+            bool hand = input_hand > hand_boundary;
+            bool stick_down = stick && prev_stick.magnitude <= stick_boundary;
+            bool index_down = index && prev_index <= idex_boundary;
+            bool hand_down = hand && prev_hand <= idex_boundary;
+
+            if (stick_down || (stick && stick_area != prev_stick_area))
             {
-                //play_next = true;
-                if (stick_down) input_stick = prev_stick;
-                if (index_down) input_index = prev_index;
-                if (hand_down) input_hand = prev_hand;
+                SetDown(stick_area + 1);
             }
-            else
+            if (index_down || hand_down)
             {
-                // Down
-                Down = true;
-
-                trail.time = 1.5f;
-                meshr.material.SetColor("_Color", down_color);
-
-                //if (!sustain) Release();
-                Release();
-
-                if (in_key != null)
+                if (in_key.ControlFinger == this && in_key.LastPlayedMode == 0)
                 {
-                    int mode = 0;
-                    if (stick_down)
-                    {
-                        int stick_area = 0;
-                        float angle = Mathf.Atan2(input_stick.y, input_stick.x) * Mathf.Rad2Deg;
-                        angle = Tools.PosifyAngleDeg(angle);
-                        stick_area = angle < 45 || angle > 315 ? 0 :
-                                     angle < 135 ? 1 :
-                                     angle < 225 ? 2 : 3;
-
-                        mode = stick_area + 1;
-                    }
-                    PlayKey(in_key, mode);
+                    // Don't play key already held in mode 0 by this finger
+                    // - down will trigger on next key touched if input still held
+                    // - allows fast playing of adjacent keys
+                    if (index_down) input_index = prev_index;
+                    if (hand_down) input_hand = prev_hand;
+                }
+                else
+                {
+                    SetDown(0);
                 }
             }
+            if (!stick && !index && !hand)
+            {
+                SetUp();
+            }
         }
-        if (!stick && !index && !hand)
-        {
-            // Up
-            if (Down) Down = false;
+    }
+    private void SetDown(int mode)
+    {
+        Down = true;
 
-            trail.time = 0;
-            meshr.material.SetColor("_Color", new Color(0.2f, 0.2f, 0.2f));
-            Release();
-        }
+        trail.time = 1.5f;
+        meshr.material.SetColor("_Color", down_color);
+
+        Release();
+        PlayKey(in_key, mode);
+    }
+    private void SetUp()
+    {
+        if (Down) Down = false;
+
+        trail.time = 0;
+        meshr.material.SetColor("_Color", new Color(0.2f, 0.2f, 0.2f));
+        Release();
     }
     private void UpdateLine()
     {
