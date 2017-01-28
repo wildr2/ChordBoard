@@ -39,7 +39,7 @@ public class Instrument : MonoBehaviour
     public InstrumentKey[][][] Keys { get; private set; } // [panel i][board i][key i]
     public InstrumentKey key_prefab;
     private List<Note> key_sig = new List<Note> // DEBUG
-    { Note.A, Note.B, Note.Cs, Note.D, Note.E, Note.Fs, Note.G };
+    { Note.A, Note.B, Note.C, Note.D, Note.E, Note.Fs, Note.G };
 
     // Graphics
     public Color[] note_colors;

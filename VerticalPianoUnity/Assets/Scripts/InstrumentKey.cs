@@ -52,7 +52,7 @@ public class InstrumentKey : MonoBehaviour
 
         spriter.color = color;        
     }
-    public void Play(Finger finger, int chord, bool arpegiated)
+    public void Play(Finger finger, int chord, float twist)
     {
         if (chord < 0 || chord > ChordKeys.Length)
         {
@@ -60,29 +60,11 @@ public class InstrumentKey : MonoBehaviour
             return;
         }
 
-        if (arpeg_index > -1 && chord == 0)
-        {
-            PlayNextArpeg(finger);
-        }
-        else
-        {
-            if (arpeg_index > -1)
-            {
-                CancelArpeg();
-            }
 
-            if (arpegiated)
-            {
-                StartArpegChord(finger, chord);
-            }
-            else
-            {
-                PlayChord(finger, chord);
-            }
-        }
+        PlayChord(finger, chord, twist);        
     }
 
-    private void PlayChord(Finger finger, int chord)
+    private void PlayChord(Finger finger, int chord, float twist)
     {
         Emiter.Play(finger);
         SetNewControlFinger(finger);
@@ -90,9 +72,13 @@ public class InstrumentKey : MonoBehaviour
 
         if (ChordKeys[chord] != null)
         {
-            foreach (InstrumentKey key in ChordKeys[chord])
+            for (int i = 0; i < ChordKeys[chord].Length; ++i)
             {
-                key.Emiter.Play(finger);
+                InstrumentKey key = ChordKeys[chord][i];
+                float delay = twist * 0.25f * (i + 1);
+
+                StartCoroutine(CoroutineUtil.DoAfterDelay(
+                    () => key.Emiter.Play(finger), delay));
             }
         }
     }

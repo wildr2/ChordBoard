@@ -94,9 +94,12 @@ public class Finger : MonoBehaviour
                      stick_angle < 135 ? 1 :
                      stick_angle < 225 ? 2 : 3;
 
-        float twist = Mathf.DeltaAngle(0, transform.rotation.eulerAngles.z);
-        bool arpegiated = Mathf.Abs(twist) > 20f;
-        if (arpegiated) Hand.DebugFlash(Color.red);
+        float twist = Mathf.Abs(
+            Mathf.DeltaAngle(0, transform.rotation.eulerAngles.z) / 90f);
+        twist = Mathf.Pow(twist, 2);
+        //Tools.Log(twist);
+        //bool arpegiated = Mathf.Abs(twist) > 20f;
+        //if (arpegiated) Hand.DebugFlash(Color.red);
 
         if (in_key != null)
         {
@@ -109,11 +112,11 @@ public class Finger : MonoBehaviour
 
             if (stick_down || (stick && stick_area != prev_stick_area))
             {
-                SetDown(stick_area + 1, arpegiated);
+                SetDown(stick_area + 1, twist);
             }
             if (index_down || hand_down)
             {
-                if (!arpegiated && in_key.ControlFinger == this && in_key.LastChordNum == 0)
+                if (in_key.ControlFinger == this && in_key.LastChordNum == 0)
                 {
                     // Don't play key already held in chord 0 by this finger
                     // - down will trigger on next key touched if input still held
@@ -123,7 +126,7 @@ public class Finger : MonoBehaviour
                 }
                 else
                 {
-                    SetDown(0, arpegiated);
+                    SetDown(0, twist);
                 }
             }
             if (!stick && !index && !hand)
@@ -132,18 +135,18 @@ public class Finger : MonoBehaviour
             }
         }
     }
-    private void SetDown(int chord, bool arpegiated)
+    private void SetDown(int chord, float twist)
     {
         Down = true;
 
         trail.time = 1.5f;
         meshr.material.SetColor("_Color", down_color);
 
-        if (!arpegiated) Release();
+        Release();
 
         if (in_key != null)
         {
-            PlayKey(in_key, chord, arpegiated);
+            PlayKey(in_key, chord, twist);
         }
     }
     private void SetUp()
@@ -170,9 +173,9 @@ public class Finger : MonoBehaviour
         {
         }
     }
-    private void PlayKey(InstrumentKey key, int chord, bool arpegiated)
+    private void PlayKey(InstrumentKey key, int chord, float twist)
     {
-        key.Play(this, chord, arpegiated);
+        key.Play(this, chord, twist);
         if (on_hit_key != null) on_hit_key(key);
     }
     private void Release()
