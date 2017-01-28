@@ -8,6 +8,8 @@ public enum NaturalNote { A, B, C, D, E, F, G }
 
 public class Instrument : MonoBehaviour
 {
+    public bool debug_mute = false;
+
     public const int NotesPerOctave = 12;
     public const int NaturalNotesPerOctave = 7;
 
@@ -16,7 +18,7 @@ public class Instrument : MonoBehaviour
     public int samplerate = 44100;
 
     // Frequencies
-    private int num_octaves = 4;
+    private int num_octaves = 5;
     private float[] mid_frequencies = new float[] // for the middle octave
     {
         220.000f,233.082f,246.942f,261.626f,
@@ -32,6 +34,8 @@ public class Instrument : MonoBehaviour
     private AudioClip[] clips; // clip for each emiter
 
     // Control
+    //public Vector3 CurveCenter { get; private set; }
+    public InstrumentKey[] AllKeys { get; private set; }
     public InstrumentKey[][][] Keys { get; private set; } // [panel i][board i][key i]
     public InstrumentKey key_prefab;
     private List<Note> key_sig = new List<Note> // DEBUG
@@ -98,7 +102,12 @@ public class Instrument : MonoBehaviour
     private void Awake()
     {
         DefineNoteFrequencies();
-        CreateNoteClips();
+
+        if (!debug_mute)
+        {
+            CreateNoteClips();
+        }
+        
         CreateEmiters();
         CreateKeys();
 
@@ -242,52 +251,82 @@ public class Instrument : MonoBehaviour
 
             InstrumentEmiter emiter = Instantiate(emiter_prefab);
             emiter.transform.SetParent(folder.transform);
-            emiter.Initialize(clips[i], note, octave);
+            emiter.Initialize(debug_mute ? null : clips[i], note, octave);
             emiter.transform.name = "Emiter " + emiter.NoteName;
             Emiters[i] = emiter;
         }
     }
     private void CreateKeys()
     {
-        Keys = new InstrumentKey[1][][];
+        int panels = 1;
+        int boards = 3;
+        int keys_per_board = NaturalNotesPerOctave * num_octaves;
+
+        Keys = new InstrumentKey[panels][][];
+        AllKeys = new InstrumentKey[panels * boards * keys_per_board];
 
         float panel_spacing = 0.2f;
         float board_spacing = 0.01f;
         float key_spacing = 0f;
-        float key_w = 0.1f;
-        float key_h = 0.05f * 0.75f;
 
-        for (int panel_i = 0; panel_i < Keys.Length; ++panel_i)
+        InstrumentKey query_key = Instantiate(key_prefab);
+        float key_w = query_key.GetBounds().size.x;
+        float key_h = query_key.GetBounds().size.y;
+        Destroy(query_key.gameObject);
+
+        
+        // Curve
+        float curve_r = 0.5f;
+        float total_w = key_w * (keys_per_board + key_spacing);
+
+
+        // Create
+        int key_num = 0;
+        for (int p = 0; p < panels; ++p)
         {
             //Panel
-            GameObject panel = new GameObject("Panel " + panel_i);
+            GameObject panel = new GameObject("Panel " + p);
             panel.transform.SetParent(transform);
-            panel.transform.localPosition = new Vector3(0, 0, panel_spacing * -panel_i);
+            panel.transform.localPosition = new Vector3(0, 0, panel_spacing * -p);
             panel.transform.localRotation = Quaternion.identity;
 
-            Keys[panel_i] = new InstrumentKey[3][];
+            Keys[p] = new InstrumentKey[boards][];
 
-            for (int i = 0; i < Keys[panel_i].Length; ++i)
+            for (int b = 0; b < boards; ++b)
             {
                 // Board
-                GameObject board = new GameObject("Board " + i);
+                GameObject board = new GameObject("Board " + b);
                 board.transform.SetParent(panel.transform);
-                board.transform.localPosition = new Vector3((key_w + board_spacing) * -i, 0, 0);
+                board.transform.localPosition = new Vector3(0, (key_h + board_spacing) * -b, 0);
                 board.transform.localRotation = Quaternion.identity;
 
+                Vector3 curve_center = board.transform.position
+                    + board.transform.forward * curve_r;
+
                 // Keys
-                Keys[panel_i][i] = new InstrumentKey[NaturalNotesPerOctave * num_octaves];
-                for (int j = 0; j < Keys[panel_i][i].Length; ++j)
+                Keys[p][b] = new InstrumentKey[keys_per_board];
+                for (int k = 0; k < keys_per_board; ++k)
                 {
-                    int octave = Mathf.FloorToInt(j / (float)NaturalNotesPerOctave);
-                    NaturalNote nat_note = (NaturalNote)(j % NaturalNotesPerOctave);
+                    int octave = Mathf.FloorToInt(k / (float)NaturalNotesPerOctave);
+                    NaturalNote nat_note = (NaturalNote)(k % NaturalNotesPerOctave);
                     Note note = NatNoteToNote(nat_note);
                     Note note_sharp = ToggleAccidental(note);
 
                     InstrumentKey key = Instantiate(key_prefab);
                     key.transform.SetParent(board.transform);
-                    key.transform.localPosition = new Vector3(0, (key_h + key_spacing) * j, 0);
+                    key.transform.localPosition = new Vector3(k * (key_w + key_spacing), 0, 0);
                     key.transform.localRotation = Quaternion.identity;
+
+                    //float arc_len = ((float)k / keys_per_board) * total_w;
+                    //float angle = arc_len / curve_r;
+                    //Vector2 circle_pos = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * curve_r;
+                    //key.transform.position = curve_center - board.transform.forward * circle_pos.y +
+                    //    board.transform.right * circle_pos.x;
+
+                    //key.transform.rotation = Quaternion.LookRotation(curve_center - key.transform.position);
+                    //Vector3 eulers = key.transform.localRotation.eulerAngles;
+                    //eulers.z = 0;
+                    //key.transform.localRotation = Quaternion.Euler(eulers);
 
                     key.Initialize(
                         Emiters[(int)note + NotesPerOctave * octave],
@@ -296,23 +335,22 @@ public class Instrument : MonoBehaviour
 
                     key.name = "Key " + key.Emiter.NoteName;
 
-                    Keys[panel_i][i][j] = key;
+                    Keys[p][b][k] = key;
+                    AllKeys[key_num] = key;
+                    ++key_num;
                 }
 
                 // Setup chords
-                for (int j = 0; j < Keys[panel_i][i].Length; ++j)
+                for (int k = 0; k < Keys[p][b].Length; ++k)
                 {
-                    AssignChordKeys(panel_i, i, j);
+                    AssignChordKeys(p, b, k);
                 }
             }
         }
     }
-    private void AssignChordKeys(int panel_i, int board_i, int key_i)
+    private void AssignChordKeys(int p, int b, int k)
     {
-        int pi = panel_i;
-        int i = board_i;
-        int j = key_i;
-        int n = Keys[pi][i].Length;
+        int n = Keys[p][b].Length;
 
         InstrumentKey[][] chord_keys = new InstrumentKey[5][];
 
@@ -337,33 +375,33 @@ public class Instrument : MonoBehaviour
             
         */
 
-        if (i == 0)
+        if (b == 0)
         {
             chord_keys[0] = new InstrumentKey[0];
-            chord_keys[1] = new InstrumentKey[1] { Keys[pi][i][(j + 1) % n] };
-            chord_keys[2] = new InstrumentKey[1] { Keys[pi][i][(j + 2) % n] };
-            chord_keys[3] = new InstrumentKey[1] { Keys[pi][i][(j + 3) % n] };
-            chord_keys[4] = new InstrumentKey[1] { Keys[pi][i][(j + 4) % n] };
+            chord_keys[1] = new InstrumentKey[1] { Keys[p][b][(k + 1) % n] };
+            chord_keys[2] = new InstrumentKey[1] { Keys[p][b][(k + 2) % n] };
+            chord_keys[3] = new InstrumentKey[1] { Keys[p][b][(k + 3) % n] };
+            chord_keys[4] = new InstrumentKey[1] { Keys[p][b][(k + 4) % n] };
         }
-        else if (i == 1)
+        else if (b == 1)
         {
             chord_keys[0] = new InstrumentKey[2]
-                { Keys[pi][i][(j + 2) % n], Keys[pi][i][(j + 4) % n] };
+                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 4) % n] };
             chord_keys[1] = new InstrumentKey[2] 
-                { Keys[pi][i][(j + 3) % n], Keys[pi][i][(j + 5) % n] };
+                { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 5) % n] };
             chord_keys[2] = new InstrumentKey[1]
-                { Keys[pi][i][(j + 5) % n] };
+                { Keys[p][b][(k + 5) % n] };
             chord_keys[3] = new InstrumentKey[2]
-                { Keys[pi][i][(j + 2) % n], Keys[pi][i][(j + 5) % n] };
+                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 5) % n] };
             chord_keys[4] = new InstrumentKey[1]
-                { Keys[pi][i][(j + 6) % n] };
+                { Keys[p][b][(k + 6) % n] };
         }
-        else if (i == 2)
+        else if (b == 2)
         {
 
         }
 
-        Keys[pi][i][j].ChordKeys = chord_keys;
+        Keys[p][b][k].ChordKeys = chord_keys;
     }
 
 }

@@ -21,6 +21,7 @@ public class DebugLineDrawer : MonoBehaviour
                 else
                 {
                     DontDestroyOnLoad(_instance);
+                    _instance.Initialize();
                 }
             }
             return _instance;

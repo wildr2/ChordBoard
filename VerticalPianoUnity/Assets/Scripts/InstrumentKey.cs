@@ -46,10 +46,7 @@ public class InstrumentKey : MonoBehaviour
         shape.material.SetColor("_Color", color);
         shape.gameObject.SetActive(false);
 
-        spriter = GetComponentInChildren<SpriteRenderer>();        
-        spriter.color = color;
-
-        collider = GetComponentInChildren<BoxCollider>();
+        spriter.color = color;        
     }
     public void Play(Finger finger, int mode)
     {
@@ -79,6 +76,11 @@ public class InstrumentKey : MonoBehaviour
         //StartCoroutine(FlashHighlight());
     }
 
+    private void Awake()
+    {
+        collider = GetComponentInChildren<BoxCollider>();
+        spriter = GetComponentInChildren<SpriteRenderer>();
+    }
     private void Update()
     {
         if (Emiter.AudioSource.isPlaying)
@@ -99,7 +101,6 @@ public class InstrumentKey : MonoBehaviour
             if (shape.gameObject.activeInHierarchy)
                 shape.gameObject.SetActive(false);
         }
-        
     }
     private IEnumerator FlashHighlight()
     {

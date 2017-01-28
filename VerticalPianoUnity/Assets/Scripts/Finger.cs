@@ -45,10 +45,7 @@ public class Finger : MonoBehaviour
     public void UpdateFinger()
     {
         UpdateInput();
-        UpdateLine();
-
-        //if (instrument != null)
-        //    UpdateKeyCollision();
+        UpdateKeyCollision();
 
         // DEBUG
         if (Input.GetKeyDown(KeyCode.Space))
@@ -161,60 +158,37 @@ public class Finger : MonoBehaviour
     }
     private void UpdateKeyCollision()
     {
-        //float closest_dist = float.MaxValue;
-        //InstrumentKey closest = null;
+        Vector3 fingerpos = transform.position;
+        Vector3 curve_center = instrument.transform.position +
+            instrument.transform.forward * 0.5f;
 
-        //for (int pi = 0; pi < instrument.Keys.Length; ++pi)
-        //{
-        //    Transform panel = instrument.Keys[pi][0][0].transform.parent.parent;
+        curve_center = instrument.transform.InverseTransformPoint(curve_center);
+        fingerpos = instrument.transform.InverseTransformPoint(fingerpos);
+        curve_center.y = fingerpos.y;
+        curve_center = instrument.transform.TransformPoint(curve_center);
+        fingerpos = instrument.transform.TransformPoint(fingerpos);
 
-        //    for (int i = 0; i < instrument.Keys[pi].Length; ++i)
-        //    {
-        //        for (int j = 0; j < instrument.Keys[pi][i].Length; ++j)
-        //        {
-        //            InstrumentKey key = instrument.Keys[pi][i][j];
+        Vector3 ray_dir = (transform.position - curve_center).normalized;
 
-        //            // Proximity Calculation
-        //            float d = Vector3.Distance(transform.position, key.transform.position);
-        //            if (d < closest_dist)
-        //            {
-        //                closest_dist = d;
-        //                closest = key;
-        //            }
+        Ray ray = new Ray(transform.position, ray_dir);
+        RaycastHit hit;
 
-        //            // Collision
-        //            if (Down)
-        //            {
-        //                if (key.IntersectLine(transform.position, LastPos))
-        //                {
-        //                    OnTouchKey(key);
-        //                }
-        //            }                
-        //        }
-        //    }
-        //}
+        if (Physics.Raycast(ray, out hit, 100))
+        {
+            InstrumentKey key = hit.collider.GetComponentInParent<InstrumentKey>();
+            if (key != null)
+            {
+                // Collision
+                in_key = key;
 
-        // Vibration
-        //float dist_y = Mathf.Abs(transform.position.y - closest.transform.position.y);
-        //float x = Mathf.Pow(Mathf.Clamp01(dist_y * 50f), 2);
-        //if (dist_y > 0.1f || closest_dist > 0.5f) x = 0;
-
-        //Color key_c = closest.GetColor();
-        //key_c.a = 1;
-        //Color c = key_c;
-        //float width = Mathf.Lerp(0.005f, 0.001f, x);
-
-        //Vector3 p0 = transform.position;
-        //Vector3 p1 = closest.transform.position;
-        //p1.y = p0.y;
-        //p1.x = p0.x;
-        //Vector3 dir = (p1 - p0).normalized;
-        //p0 -= dir * 10f;
-        //p1 += dir * 10f;
-
-        //DebugLineDrawer.Draw(p0, p1, c, 0, width);
-        //OVRInput.SetControllerVibration(10f, x);
-
+                line.SetPosition(0, transform.position);
+                line.SetPosition(1, transform.position + ray_dir * hit.distance);
+            }
+        }
+        else
+        {
+            in_key = null;
+        }
     }
     private void PlayKey(InstrumentKey key, int mode)
     {
@@ -227,28 +201,28 @@ public class Finger : MonoBehaviour
             on_release();
     }
 
-    private void OnTriggerEnter(Collider collider)
-    {
-        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
-        if (key != null)
-        {
-            in_key = key;
-        }
-    }
-    private void OnTriggerExit(Collider collider)
-    {
-        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
-        if (key != null)
-        {
-            if (key == in_key) in_key = null;
-        }
-    }
-    private void OnTriggerStay(Collider collider)
-    {
-        InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
-        if (key != null)
-        {
-            in_key = key;
-        }
-    }
+    //private void OnTriggerEnter(Collider collider)
+    //{
+    //    InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+    //    if (key != null)
+    //    {
+    //        in_key = key;
+    //    }
+    //}
+    //private void OnTriggerExit(Collider collider)
+    //{
+    //    InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+    //    if (key != null)
+    //    {
+    //        if (key == in_key) in_key = null;
+    //    }
+    //}
+    //private void OnTriggerStay(Collider collider)
+    //{
+    //    InstrumentKey key = collider.GetComponentInParent<InstrumentKey>();
+    //    if (key != null)
+    //    {
+    //        in_key = key;
+    //    }
+    //}
 }
