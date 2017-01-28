@@ -53,20 +53,20 @@ public class Finger : MonoBehaviour
         UpdateLine();
 
         // DEBUG
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            //Bounds b = instrument.Keys[0][0][0].GetBounds();
-            //Tools.Log("center " + b.center);
-            //Tools.Log("size " + b.size);
-            //Tools.Log("min " + b.min);
-            //Tools.Log("max " + b.max);
+        //if (Input.GetKeyDown(KeyCode.Space))
+        //{
+        //    //Bounds b = instrument.Keys[0][0][0].GetBounds();
+        //    //Tools.Log("center " + b.center);
+        //    //Tools.Log("size " + b.size);
+        //    //Tools.Log("min " + b.min);
+        //    //Tools.Log("max " + b.max);
 
-            PlayKey(instrument.Keys[0][0][0], 0);
-        }
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            Release();
-        }
+        //    PlayKey(instrument.Keys[0][0][0], 0);
+        //}
+        //if (Input.GetKeyDown(KeyCode.R))
+        //{
+        //    Release();
+        //}
     }
 
     private void Awake()
@@ -94,6 +94,9 @@ public class Finger : MonoBehaviour
                      stick_angle < 135 ? 1 :
                      stick_angle < 225 ? 2 : 3;
 
+        float twist = Mathf.DeltaAngle(0, transform.rotation.eulerAngles.z);
+        bool arpegiated = Mathf.Abs(twist) > 20f;
+        if (arpegiated) Hand.DebugFlash(Color.red);
 
         if (in_key != null)
         {
@@ -106,13 +109,13 @@ public class Finger : MonoBehaviour
 
             if (stick_down || (stick && stick_area != prev_stick_area))
             {
-                SetDown(stick_area + 1);
+                SetDown(stick_area + 1, arpegiated);
             }
             if (index_down || hand_down)
             {
-                if (in_key.ControlFinger == this && in_key.LastPlayedMode == 0)
+                if (!arpegiated && in_key.ControlFinger == this && in_key.LastChordNum == 0)
                 {
-                    // Don't play key already held in mode 0 by this finger
+                    // Don't play key already held in chord 0 by this finger
                     // - down will trigger on next key touched if input still held
                     // - allows fast playing of adjacent keys
                     if (index_down) input_index = prev_index;
@@ -120,7 +123,7 @@ public class Finger : MonoBehaviour
                 }
                 else
                 {
-                    SetDown(0);
+                    SetDown(0, arpegiated);
                 }
             }
             if (!stick && !index && !hand)
@@ -129,15 +132,19 @@ public class Finger : MonoBehaviour
             }
         }
     }
-    private void SetDown(int mode)
+    private void SetDown(int chord, bool arpegiated)
     {
         Down = true;
 
         trail.time = 1.5f;
         meshr.material.SetColor("_Color", down_color);
 
-        Release();
-        PlayKey(in_key, mode);
+        if (!arpegiated) Release();
+
+        if (in_key != null)
+        {
+            PlayKey(in_key, chord, arpegiated);
+        }
     }
     private void SetUp()
     {
@@ -163,9 +170,9 @@ public class Finger : MonoBehaviour
         {
         }
     }
-    private void PlayKey(InstrumentKey key, int mode)
+    private void PlayKey(InstrumentKey key, int chord, bool arpegiated)
     {
-        key.Play(this, mode);
+        key.Play(this, chord, arpegiated);
         if (on_hit_key != null) on_hit_key(key);
     }
     private void Release()

@@ -366,28 +366,37 @@ public class Instrument : MonoBehaviour
 
         if (b == 0)
         {
-            chord_keys[0] = new InstrumentKey[0];
-            chord_keys[1] = new InstrumentKey[1] { Keys[p][b][(k + 1) % n] };
-            chord_keys[2] = new InstrumentKey[1] { Keys[p][b][(k + 2) % n] };
-            chord_keys[3] = new InstrumentKey[1] { Keys[p][b][(k + 3) % n] };
-            chord_keys[4] = new InstrumentKey[1] { Keys[p][b][(k + 4) % n] };
-        }
-        else if (b == 1)
-        {
             chord_keys[0] = new InstrumentKey[2]
                 { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 4) % n] };
-            chord_keys[1] = new InstrumentKey[2] 
+            chord_keys[1] = new InstrumentKey[2]
                 { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 5) % n] };
             chord_keys[2] = new InstrumentKey[1]
                 { Keys[p][b][(k + 5) % n] };
             chord_keys[3] = new InstrumentKey[2]
                 { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 5) % n] };
             chord_keys[4] = new InstrumentKey[1]
-                { Keys[p][b][(k + 6) % n] };
+                { Keys[p][b][(k + 6) % n] };   
+        }
+        else if (b == 1)
+        {
+            chord_keys[0] = new InstrumentKey[0];
+            chord_keys[1] = new InstrumentKey[1] { Keys[p][b][(k + 1) % n] };
+            chord_keys[2] = new InstrumentKey[1] { Keys[p][b][(k + 2) % n] };
+            chord_keys[3] = new InstrumentKey[1] { Keys[p][b][(k + 3) % n] };
+            chord_keys[4] = new InstrumentKey[1] { Keys[p][b][(k + 4) % n] };
         }
         else if (b == 2)
         {
-
+            chord_keys[0] = new InstrumentKey[2]
+                { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 6) % n] };
+            chord_keys[1] = new InstrumentKey[2]
+                { Keys[p][b][(k + 4) % n], Keys[p][b][(k + 6) % n] };
+            chord_keys[2] = new InstrumentKey[1]
+                { Keys[p][b][(k + 7) % n] };
+            chord_keys[3] = new InstrumentKey[2]
+                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 6) % n] };
+            chord_keys[4] = new InstrumentKey[1]
+                { Keys[p][b][(k + 8) % n] };
         }
 
         Keys[p][b][k].ChordKeys = chord_keys;
