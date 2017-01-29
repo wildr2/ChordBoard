@@ -11,10 +11,16 @@ public class InstrumentEmiter : MonoBehaviour
     public AudioSource AudioSource { get; private set; }
     public Finger ControlFinger { get; private set; }
 
+    private Instrument instrument;
+    private float play_dist;
     private const float control_deadzone = 0.025f;
 
+    private float vibrato_deadzone = 0.5f;
+    private float vibrato_intensity = 0.003f;
+    private float vibrato_speed = 2f;
 
-    public void Initialize(AudioClip clip, Note note, int octave)
+
+    public void Initialize(AudioClip clip, Note note, int octave, Instrument instrument)
     {
         Octave = octave;
         Note = note;
@@ -22,8 +28,10 @@ public class InstrumentEmiter : MonoBehaviour
 
         AudioSource = GetComponent<AudioSource>();
         AudioSource.clip = clip;
+
+        this.instrument = instrument;
     }
-    public void Play(Finger finger)
+    public void Play(Finger finger, float intensity)
     {
         if (ControlFinger != null)
         {
@@ -37,7 +45,11 @@ public class InstrumentEmiter : MonoBehaviour
         {
             AudioSource.Play();
         }
-        AudioSource.volume = 1;
+        AudioSource.volume = intensity;
+
+        play_dist = instrument.GetPlane().GetDistanceToPoint(
+                ControlFinger.transform.position);
+
         UpdateControl();
     }
 
@@ -61,10 +73,22 @@ public class InstrumentEmiter : MonoBehaviour
         }
         else
         {
-            //float v = ControlFinger.Hand.GetVelocity().magnitude;
-            //AudioSource.volume = Mathf.Clamp01(
-            //    (v - control_deadzone) / (1.5f - control_deadzone));
-            AudioSource.volume *= 0.99f;
+            // Intensity
+            float intensity = Mathf.DeltaAngle(-45, ControlFinger.transform.rotation.eulerAngles.x) / 90f;
+            AudioSource.volume = Mathf.Clamp01(intensity);
+
+            // Vibrato
+            float dist = instrument.GetPlane().GetDistanceToPoint(
+                ControlFinger.transform.position);
+
+            float travel = (play_dist - dist) / 0.1f;
+            float vibrato = Mathf.Sin(travel * Mathf.PI * 2f * vibrato_speed);
+            float str = Mathf.Max(0, Mathf.Clamp01(Mathf.Abs(travel)) - vibrato_deadzone) * (1f / vibrato_deadzone);
+            AudioSource.pitch = 1 + vibrato * str * vibrato_intensity;
+
+            DebugLineDrawer.Draw(ControlFinger.transform.position,
+                ControlFinger.transform.position + instrument.transform.forward * Mathf.Abs(play_dist - dist),
+                Color.Lerp(Color.blue, Color.red, str), 0, 0.001f);
         }
     }
     private void OnFingerRelease()

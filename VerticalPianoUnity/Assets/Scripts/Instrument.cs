@@ -47,6 +47,10 @@ public class Instrument : MonoBehaviour
 
     // PUBLIC ACCESSORS
 
+    public Plane GetPlane()
+    {
+        return new Plane(transform.forward, transform.position);
+    }
 
 
     // PUBLIC HELPERS
@@ -251,7 +255,7 @@ public class Instrument : MonoBehaviour
 
             InstrumentEmiter emiter = Instantiate(emiter_prefab);
             emiter.transform.SetParent(folder.transform);
-            emiter.Initialize(debug_mute ? null : clips[i], note, octave);
+            emiter.Initialize(debug_mute ? null : clips[i], note, octave, this);
             emiter.transform.name = "Emiter " + emiter.NoteName;
             Emiters[i] = emiter;
         }

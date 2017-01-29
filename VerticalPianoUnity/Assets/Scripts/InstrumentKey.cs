@@ -52,7 +52,7 @@ public class InstrumentKey : MonoBehaviour
 
         spriter.color = color;        
     }
-    public void Play(Finger finger, int chord, float twist)
+    public void Play(Finger finger, int chord, float twist, float intensity)
     {
         if (chord < 0 || chord > ChordKeys.Length)
         {
@@ -60,59 +60,71 @@ public class InstrumentKey : MonoBehaviour
             return;
         }
 
-
-        PlayChord(finger, chord, twist);        
+        PlayChord(finger, chord, twist, intensity);        
     }
 
-    private void PlayChord(Finger finger, int chord, float twist)
+    private void PlayChord(Finger finger, int chord, float twist, float intensity)
     {
-        Emiter.Play(finger);
-        SetNewControlFinger(finger);
-        LastChordNum = chord;
-
-        if (ChordKeys[chord] != null)
+        float[] delays = new float[ChordKeys[chord].Length + 1];
+        for (int i = 0; i < delays.Length; ++i)
         {
-            for (int i = 0; i < ChordKeys[chord].Length; ++i)
-            {
-                InstrumentKey key = ChordKeys[chord][i];
-                float delay = twist * 0.25f * (i + 1);
-
-                StartCoroutine(CoroutineUtil.DoAfterDelay(
-                    () => key.Emiter.Play(finger), delay));
-            }
+            delays[i] = Mathf.Abs(twist) * 0.25f * i;
         }
-    }
-    private void StartArpegChord(Finger finger, int chord)
-    {
-        Emiter.Play(finger);
-        SetNewControlFinger(finger);
-        LastChordNum = chord;
 
-        if (ChordKeys[chord] == null || ChordKeys[chord].Length == 0)
+        float delay = delays[twist > 0 ? 0 : delays.Length - 1]; 
+        if (delay == 0)
         {
-            // Not possible
-            arpeg_index = -1;
+            Emiter.Play(finger, intensity);
         }
         else
         {
-            arpeg_index = 0;
+            StartCoroutine(CoroutineUtil.DoAfterDelay(
+                    () => Emiter.Play(finger, intensity), delay));
         }
-    }
-    private void PlayNextArpeg(Finger finger)
-    {
-        ChordKeys[LastChordNum][arpeg_index].Emiter.Play(finger);
-
-        ++arpeg_index;
-        if (arpeg_index == ChordKeys[LastChordNum].Length)
+        
+        for (int i = 0; i < ChordKeys[chord].Length; ++i)
         {
-            // No more arpegiated chord notes to play
-            arpeg_index = -1;
+            InstrumentKey key = ChordKeys[chord][i];
+            delay = delays[twist > 0 ? i+1 : delays.Length - (i+2)];
+
+            StartCoroutine(CoroutineUtil.DoAfterDelay(
+                () => key.Emiter.Play(finger, intensity), delay));
         }
+
+        SetNewControlFinger(finger);
+        LastChordNum = chord;
     }
-    private void CancelArpeg()
-    {
-        arpeg_index = -1;
-    }
+    //private void StartArpegChord(Finger finger, int chord)
+    //{
+    //    Emiter.Play(finger);
+    //    SetNewControlFinger(finger);
+    //    LastChordNum = chord;
+
+    //    if (ChordKeys[chord] == null || ChordKeys[chord].Length == 0)
+    //    {
+    //        // Not possible
+    //        arpeg_index = -1;
+    //    }
+    //    else
+    //    {
+    //        arpeg_index = 0;
+    //    }
+    //}
+    //private void PlayNextArpeg(Finger finger)
+    //{
+    //    ChordKeys[LastChordNum][arpeg_index].Emiter.Play(finger);
+
+    //    ++arpeg_index;
+    //    if (arpeg_index == ChordKeys[LastChordNum].Length)
+    //    {
+    //        // No more arpegiated chord notes to play
+    //        arpeg_index = -1;
+    //    }
+    //}
+    //private void CancelArpeg()
+    //{
+    //    arpeg_index = -1;
+    //}
 
     private void SetNewControlFinger(Finger finger)
     {
