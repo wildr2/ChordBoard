@@ -133,7 +133,7 @@ public class Finger : MonoBehaviour
             }
             if (!stick && !index && !hand)
             {
-                SetUp();
+                if (Down) SetUp();
             }
         }
     }

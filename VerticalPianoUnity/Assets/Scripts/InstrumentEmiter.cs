@@ -33,13 +33,7 @@ public class InstrumentEmiter : MonoBehaviour
     }
     public void Play(Finger finger, float intensity)
     {
-        if (ControlFinger != null)
-        {
-            OnFingerRelease();
-        }
-
         ControlFinger = finger;
-        finger.on_release += OnFingerRelease;
 
         if (!AudioSource.isPlaying)
         {
@@ -51,6 +45,10 @@ public class InstrumentEmiter : MonoBehaviour
                 ControlFinger.transform.position);
 
         UpdateControl();
+    }
+    public void Stop()
+    {
+        ControlFinger = null;
     }
 
     private void Update()
@@ -89,10 +87,5 @@ public class InstrumentEmiter : MonoBehaviour
             //    ControlFinger.transform.position + instrument.transform.forward * Mathf.Abs(play_dist - dist),
             //    Color.Lerp(Color.blue, Color.red, str), 0, 0.001f);
         }
-    }
-    private void OnFingerRelease()
-    {
-        ControlFinger.on_release -= OnFingerRelease;
-        ControlFinger = null;
     }
 }

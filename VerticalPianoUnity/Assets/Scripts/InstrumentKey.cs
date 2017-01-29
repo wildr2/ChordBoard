@@ -15,6 +15,9 @@ public class InstrumentKey : MonoBehaviour
     public Finger ControlFinger { get; private set; }
     public int LastChordNum { get; private set; }
 
+    private float play_timestamp;
+    private float[] play_delays;
+
     public InstrumentEmiter Emiter
     {
         get { return Sharp ? emiter_sharp : emiter_natural; }
@@ -69,7 +72,32 @@ public class InstrumentKey : MonoBehaviour
             return;
         }
 
-        PlayChord(finger, chord, twist, intensity);        
+        play_timestamp = Time.time;
+
+        play_delays = new float[ChordKeys[chord].Length];
+        for (int i = 0; i < play_delays.Length; ++i)
+        {
+            if (twist > 0)
+            {
+                play_delays[i] = Mathf.Abs(twist) * 0.25f * i;
+            }
+            else
+            {
+                play_delays[i] = Mathf.Abs(twist) * 0.25f *
+                    (play_delays.Length - 1 - i);
+            }
+            
+        }
+
+        for (int i = 0; i < ChordKeys[chord].Length; ++i)
+        {
+            InstrumentKey key = ChordKeys[chord][i];
+            StartCoroutine(CoroutineUtil.DoAfterDelay(
+                () => key.Emiter.Play(finger, intensity), play_delays[i]));
+        }
+
+        SetNewControlFinger(finger);
+        LastChordNum = chord;
     }
 
 
@@ -102,37 +130,6 @@ public class InstrumentKey : MonoBehaviour
         }
     }
 
-    private void PlayChord(Finger finger, int chord, float twist, float intensity)
-    {
-        float[] delays = new float[ChordKeys[chord].Length + 1];
-        for (int i = 0; i < delays.Length; ++i)
-        {
-            delays[i] = Mathf.Abs(twist) * 0.25f * i;
-        }
-
-        float delay = delays[twist > 0 ? 0 : delays.Length - 1];
-        if (delay == 0)
-        {
-            Emiter.Play(finger, intensity);
-        }
-        else
-        {
-            StartCoroutine(CoroutineUtil.DoAfterDelay(
-                    () => Emiter.Play(finger, intensity), delay));
-        }
-
-        for (int i = 0; i < ChordKeys[chord].Length; ++i)
-        {
-            InstrumentKey key = ChordKeys[chord][i];
-            delay = delays[twist > 0 ? i + 1 : delays.Length - (i + 2)];
-
-            StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Play(finger, intensity), delay));
-        }
-
-        SetNewControlFinger(finger);
-        LastChordNum = chord;
-    }
     private void SetNewControlFinger(Finger finger)
     {
         if (ControlFinger != null)
@@ -146,5 +143,17 @@ public class InstrumentKey : MonoBehaviour
     {
         ControlFinger.on_release -= OnFingerRelease;
         ControlFinger = null;
+
+        float dur = Time.time - play_timestamp;
+
+        // Stop chord keys at right times
+        for (int i = 0; i < ChordKeys[LastChordNum].Length; ++i)
+        {
+            InstrumentKey key = ChordKeys[LastChordNum][i];
+
+            float end_time = play_timestamp + play_delays[i] + dur;
+            StartCoroutine(CoroutineUtil.DoAfterDelay(
+                () => key.Emiter.Stop(), end_time - Time.time));
+        }
     }
 }

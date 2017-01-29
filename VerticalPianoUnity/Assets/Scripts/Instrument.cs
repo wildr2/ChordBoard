@@ -335,10 +335,6 @@ public class Instrument : MonoBehaviour
     }
     private void AssignChordKeys(int p, int b, int k)
     {
-        int n = Keys[p][b].Length;
-
-        InstrumentKey[][] chord_keys = new InstrumentKey[5][];
-
         /*
         0 - center
         1 - right
@@ -346,17 +342,17 @@ public class Instrument : MonoBehaviour
         3 - left
         4 - down
 
-        x 
-        xx         
-        x|x        
-        x||x       
-        x|||x  
-
         x|x|x 
         x||x|x     
         x||||x 
         x|x||x     
         x|||||x
+
+        x 
+        xx         
+        x|x        
+        x||x       
+        x|||x  
 
         x||x||x
         x|||x|x
@@ -372,54 +368,53 @@ public class Instrument : MonoBehaviour
             
         */
 
+        int n = Keys[p][b].Length;
+        int chords_per_key = 5;
+
+        InstrumentKey[][] chord_keys = new InstrumentKey[chords_per_key][];
+        int[][] offsets = new int[chords_per_key][];
+
         if (b == 0)
         {
-            chord_keys[0] = new InstrumentKey[2]
-                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 4) % n] };
-            chord_keys[1] = new InstrumentKey[2]
-                { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 5) % n] };
-            chord_keys[2] = new InstrumentKey[1]
-                { Keys[p][b][(k + 5) % n] };
-            chord_keys[3] = new InstrumentKey[2]
-                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 5) % n] };
-            chord_keys[4] = new InstrumentKey[1]
-                { Keys[p][b][(k + 6) % n] };   
+            offsets[0] = new int[] { 0, 2, 4 };
+            offsets[1] = new int[] { 0, 3, 5 };
+            offsets[2] = new int[] { 0, 5 };
+            offsets[3] = new int[] { 0, 2, 5 };
+            offsets[4] = new int[] { 0, 6 }; 
         }
         else if (b == 1)
         {
-            chord_keys[0] = new InstrumentKey[0];
-            chord_keys[1] = new InstrumentKey[1] { Keys[p][b][(k + 1) % n] };
-            chord_keys[2] = new InstrumentKey[1] { Keys[p][b][(k + 2) % n] };
-            chord_keys[3] = new InstrumentKey[1] { Keys[p][b][(k + 3) % n] };
-            chord_keys[4] = new InstrumentKey[1] { Keys[p][b][(k + 4) % n] };
+            offsets[0] = new int[] { 0 };
+            offsets[1] = new int[] { 0, 1 };
+            offsets[2] = new int[] { 0, 2 };
+            offsets[3] = new int[] { 0, 3 };
+            offsets[4] = new int[] { 0, 4 };
         }
         else if (b == 2)
         {
-            chord_keys[0] = new InstrumentKey[2]
-                { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 6) % n] };
-            chord_keys[1] = new InstrumentKey[2]
-                { Keys[p][b][(k + 4) % n], Keys[p][b][(k + 6) % n] };
-            chord_keys[2] = new InstrumentKey[1]
-                { Keys[p][b][(k + 7) % n] };
-            chord_keys[3] = new InstrumentKey[2]
-                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 6) % n] };
-            chord_keys[4] = new InstrumentKey[1]
-                { Keys[p][b][(k + 8) % n] };
+            offsets[0] = new int[] { 0, 3, 6 };
+            offsets[1] = new int[] { 0, 4, 6 };
+            offsets[2] = new int[] { 0, 7 };
+            offsets[3] = new int[] { 0, 2, 6 };
+            offsets[4] = new int[] { 0, 8 };
         }
         else if (b == 3)
         {
-            chord_keys[0] = new InstrumentKey[2]
-                { Keys[p][b][(k + 4) % n], Keys[p][b][(k + 8) % n] };
-            chord_keys[1] = new InstrumentKey[2]
-                { Keys[p][b][(k + 5) % n], Keys[p][b][(k + 7) % n] };
-            chord_keys[2] = new InstrumentKey[2]
-                { Keys[p][b][(k + 4) % n], Keys[p][b][(k + 7) % n] };
-            chord_keys[3] = new InstrumentKey[2]
-                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 7) % n] };
-            chord_keys[4] = new InstrumentKey[2]
-                { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 7) % n] };
+            offsets[0] = new int[] { 0, 4, 8 };
+            offsets[1] = new int[] { 0, 5, 7 };
+            offsets[2] = new int[] { 0, 4, 7 };
+            offsets[3] = new int[] { 0, 2, 7 };
+            offsets[4] = new int[] { 0, 3, 7 };
         }
 
+        for (int i = 0; i < offsets.Length; ++i)
+        {
+            chord_keys[i] = new InstrumentKey[offsets[i].Length];
+            for (int j = 0; j < offsets[i].Length; ++j)
+            {
+                chord_keys[i][j] = Keys[p][b][(k + offsets[i][j]) % n];
+            }
+        }
         Keys[p][b][k].ChordKeys = chord_keys;
     }
 
