@@ -263,19 +263,19 @@ public class Instrument : MonoBehaviour
     private void CreateKeys()
     {
         int panels = 1;
-        int boards = 3;
+        int boards = 4;
         int keys_per_board = NaturalNotesPerOctave * num_octaves;
 
         Keys = new InstrumentKey[panels][][];
         AllKeys = new InstrumentKey[panels * boards * keys_per_board];
 
         float panel_spacing = 0.2f;
-        float board_spacing = 0.01f;
+        float board_spacing = 0f;
         float key_spacing = 0f;
 
         InstrumentKey query_key = Instantiate(key_prefab);
-        float key_w = query_key.GetBounds().size.x;
-        float key_h = query_key.GetBounds().size.y;
+        float key_w = query_key.GetCollisionBounds().size.x;
+        float key_h = query_key.GetCollisionBounds().size.y;
         Destroy(query_key.gameObject);
 
 
@@ -362,9 +362,13 @@ public class Instrument : MonoBehaviour
         x|||x|x
         x||||||x
         x|x|||x
-        
-        
+        x|||||||x
 
+        x|||x|||x
+        x||||x|x
+        x|||x||x
+        x|x||||x
+        x||x|||x
             
         */
 
@@ -401,6 +405,19 @@ public class Instrument : MonoBehaviour
                 { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 6) % n] };
             chord_keys[4] = new InstrumentKey[1]
                 { Keys[p][b][(k + 8) % n] };
+        }
+        else if (b == 3)
+        {
+            chord_keys[0] = new InstrumentKey[2]
+                { Keys[p][b][(k + 4) % n], Keys[p][b][(k + 8) % n] };
+            chord_keys[1] = new InstrumentKey[2]
+                { Keys[p][b][(k + 5) % n], Keys[p][b][(k + 7) % n] };
+            chord_keys[2] = new InstrumentKey[2]
+                { Keys[p][b][(k + 4) % n], Keys[p][b][(k + 7) % n] };
+            chord_keys[3] = new InstrumentKey[2]
+                { Keys[p][b][(k + 2) % n], Keys[p][b][(k + 7) % n] };
+            chord_keys[4] = new InstrumentKey[2]
+                { Keys[p][b][(k + 3) % n], Keys[p][b][(k + 7) % n] };
         }
 
         Keys[p][b][k].ChordKeys = chord_keys;
