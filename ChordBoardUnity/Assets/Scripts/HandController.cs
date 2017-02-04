@@ -48,7 +48,6 @@ public class HandController : MonoBehaviour
             {
                 StopAllCoroutines();
                 StartCoroutine(UpdateGrabInstrument());
-                //instrument.transform.rotation = Quaternion.Euler(Time.time * 360f, Time.time * 360f, Time.time * 360f);
             }
         }
 
@@ -60,17 +59,20 @@ public class HandController : MonoBehaviour
     }
     private IEnumerator UpdateGrabInstrument()
     {
-        Vector3 instr_p0 = instrument.transform.position;
+        Vector3 pivot = transform.position;
+        Vector3 to_pivot = instrument.transform.position - pivot;
+        Quaternion ihand_r0 = Quaternion.Inverse(transform.rotation);
         Quaternion instr_r0 = instrument.transform.rotation;
-
-        Vector3 p0 = transform.position;
-        Quaternion r0 = transform.rotation;
 
         while (OVRInput.Get(OVRInput.Button.PrimaryThumbstick, controller))
         {
-            instrument.transform.position = instr_p0 + transform.position - p0;
-            instrument.transform.rotation = (Quaternion.Inverse(r0) * transform.rotation) * instr_r0;
-            
+            Quaternion rel_hand_r = ihand_r0 * transform.rotation;
+            Quaternion hand_r = transform.rotation;
+            Quaternion ihand_r = Quaternion.Inverse(transform.rotation);
+
+            Quaternion rot = hand_r * rel_hand_r * ihand_r;
+            instrument.transform.rotation = rot * instr_r0;
+            instrument.transform.position = transform.position + rot * to_pivot;
             yield return null;
         }
     }
