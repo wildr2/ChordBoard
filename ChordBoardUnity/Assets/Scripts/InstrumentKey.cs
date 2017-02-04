@@ -99,6 +99,21 @@ public class InstrumentKey : MonoBehaviour
         SetNewControlFinger(finger);
         LastChordNum = chord;
     }
+    public void Play2(Finger finger, int chord, float twist, float intensity)
+    {
+        if (chord < 0 || chord > ChordKeys.Length)
+        {
+            Debug.LogError("Invalid chord number");
+            return;
+        }
+
+        play_timestamp = Time.time;
+
+        ChordKeys[chord][0].Emiter.Play(finger, intensity);
+        
+        SetNewControlFinger(finger);
+        LastChordNum = chord;
+    }
 
 
     // PRIVATE MODIFIERS
@@ -155,5 +170,26 @@ public class InstrumentKey : MonoBehaviour
             StartCoroutine(CoroutineUtil.DoAfterDelay(
                 () => key.Emiter.Stop(), end_time - Time.time));
         }
+    }
+    private void OnFingerRelease2()
+    {
+        float dur = Time.time - play_timestamp;
+
+        Emiter.Stop();
+
+        for (int i = 1; i < ChordKeys[LastChordNum].Length; ++i)
+        {
+            Finger finger = ControlFinger;
+
+            InstrumentKey key = ChordKeys[LastChordNum][i];
+            StartCoroutine(CoroutineUtil.DoAfterDelay(
+                () => key.Emiter.Play(finger, 1), (i-1) * dur));
+
+            StartCoroutine(CoroutineUtil.DoAfterDelay(
+                () => key.Emiter.Stop(), i * dur));
+        }
+
+        ControlFinger.on_release -= OnFingerRelease;
+        ControlFinger = null;
     }
 }
