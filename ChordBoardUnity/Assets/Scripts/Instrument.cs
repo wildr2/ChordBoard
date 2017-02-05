@@ -3,15 +3,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-public enum Note { A, As, B, C, Cs, D, Ds, E, F, Fs, G, Gs }
-public enum NaturalNote { A, B, C, D, E, F, G }
 
 public class Instrument : MonoBehaviour
 {
     public bool debug_mute = false;
-
-    public const int NotesPerOctave = 12;
-    public const int NaturalNotesPerOctave = 7;
+    public const int KeysPerOctave = 12;
 
     // Sound Parameters
     public float gain = 0.05f;
@@ -29,7 +25,7 @@ public class Instrument : MonoBehaviour
 
     // Playback
     // emiter for each possible note across all octaves
-    public InstrumentEmiter[] Emiters { get; private set; } 
+    public InstrumentEmiter[] Emiters { get; private set; }
     public InstrumentEmiter emiter_prefab;
     private AudioClip[] clips; // clip for each emiter
 
@@ -38,8 +34,8 @@ public class Instrument : MonoBehaviour
     public InstrumentKey[] AllKeys { get; private set; }
     public InstrumentKey[][][] Keys { get; private set; } // [panel i][board i][key i]
     public InstrumentKey key_prefab;
-    private List<Note> key_sig = new List<Note> // DEBUG
-    { Note.A, Note.B, Note.C, Note.D, Note.E, Note.Fs, Note.G };
+    private List<string> key_sig = new List<string> // DEBUG
+    { Note.Af, Note.Bf, Note.C, Note.D, Note.Ef, Note.F, Note.G };
 
     // Graphics
     public Color[] note_colors;
@@ -58,46 +54,6 @@ public class Instrument : MonoBehaviour
     public int ClampOctave(int octave)
     {
         return Mathf.Clamp(octave, 0, num_octaves - 1);
-    }
-    public static bool IsAccidental(Note note)
-    {
-        return note == Note.As
-            || note == Note.Cs
-            || note == Note.Ds
-            || note == Note.Fs
-            || note == Note.Gs;
-    }
-    public static Note ToggleAccidental(Note note)
-    {
-        switch (note)
-        {
-            case Note.A: return Note.As;
-            case Note.As: return Note.A;
-            case Note.C: return Note.Cs;
-            case Note.Cs: return Note.C;
-            case Note.D: return Note.Ds;
-            case Note.Ds: return Note.D;
-            case Note.F: return Note.Fs;
-            case Note.Fs: return Note.F;
-            case Note.G: return Note.Gs;
-            case Note.Gs: return Note.G;
-            default: return note;
-        }
-    }
-    public static Note NatNoteToNote(NaturalNote nat_note)
-    {
-        switch (nat_note)
-        {
-            case NaturalNote.A: return Note.A;
-            case NaturalNote.B: return Note.B;
-            case NaturalNote.C: return Note.C;
-            case NaturalNote.D: return Note.D;
-            case NaturalNote.E: return Note.E;
-            case NaturalNote.F: return Note.F;
-            case NaturalNote.G: return Note.G;
-
-            default: return Note.A;
-        }
     }
 
 
@@ -122,22 +78,14 @@ public class Instrument : MonoBehaviour
             {
                 for (int j = 0; j < Keys[pi][i].Length; ++j)
                 {
-                    Note note = Keys[pi][i][j].Emiter.Note;
-                    if (!key_sig.Contains(note))
-                    {
-                        Keys[pi][i][j].Sharp = !Keys[pi][i][j].Sharp;
-                    }
+                    string sig_note = key_sig[j % Note.Natural.Length];
+                    Keys[pi][i][j].NoteType = Note.GetNoteType(sig_note);
                 }
             }
         }
         
     }
-    private float PosifyAngle(float a)
-    {
-        a = a % 360f;
-        return a > 0 ? a : a + 360f;
-    }
-
+    
     private void SetData(AudioClip clip, float frequency)
     {
         float[] data = new float[clip.samples];
@@ -250,8 +198,8 @@ public class Instrument : MonoBehaviour
         // Create audio sources for each note
         for (int i = 0; i < frequencies.Length; ++i)
         {
-            Note note = (Note)(i % Tools.EnumLength(typeof(Note)));
-            int octave = Mathf.FloorToInt(i / (float)NotesPerOctave);
+            string note = Note.Unique[i % Note.Unique.Length];
+            int octave = Mathf.FloorToInt(i / (float)KeysPerOctave);
 
             InstrumentEmiter emiter = Instantiate(emiter_prefab);
             emiter.transform.SetParent(folder.transform);
@@ -264,7 +212,7 @@ public class Instrument : MonoBehaviour
     {
         int panels = 1;
         int boards = 4;
-        int keys_per_board = NaturalNotesPerOctave * num_octaves;
+        int keys_per_board = Note.Natural.Length * num_octaves;
 
         Keys = new InstrumentKey[panels][][];
         AllKeys = new InstrumentKey[panels * boards * keys_per_board];
@@ -303,10 +251,9 @@ public class Instrument : MonoBehaviour
                 Keys[p][b] = new InstrumentKey[keys_per_board];
                 for (int k = 0; k < keys_per_board; ++k)
                 {
-                    int octave = Mathf.FloorToInt(k / (float)NaturalNotesPerOctave);
-                    NaturalNote nat_note = (NaturalNote)(k % NaturalNotesPerOctave);
-                    Note note = NatNoteToNote(nat_note);
-                    Note note_sharp = ToggleAccidental(note);
+                    int octave = Mathf.FloorToInt(k / (float)Note.Natural.Length);
+                    int nat_note_i = k % Note.Natural.Length;
+                    string note = Note.Natural[nat_note_i];
 
                     InstrumentKey key = Instantiate(key_prefab);
                     key.transform.SetParent(board.transform);
@@ -314,9 +261,10 @@ public class Instrument : MonoBehaviour
                     key.transform.localRotation = Quaternion.identity;
 
                     key.Initialize(
-                        Emiters[(int)note + NotesPerOctave * octave],
-                        Emiters[(int)note_sharp + NotesPerOctave * octave],
-                        note_colors[(int)nat_note]);
+                        EmitterFromNote(note, octave),
+                        EmitterFromNote(Note.SetNoteType(note, NoteType.Flat), octave),
+                        EmitterFromNote(Note.SetNoteType(note, NoteType.Sharp), octave),
+                        note_colors[nat_note_i]);
 
                     key.name = "Key " + key.Emiter.NoteName;
 
@@ -418,4 +366,75 @@ public class Instrument : MonoBehaviour
         Keys[p][b][k].ChordKeys = chord_keys;
     }
 
+
+    // PRIVATE HELPERS
+
+    private InstrumentEmiter EmitterFromNote(string note, int octave)
+    {
+        int i = 0;
+        switch (note)
+        {
+            case Note.Af: i = octave == 0 ? 0 : -1; break;
+            case Note.A: i = 0; break;
+            case Note.As: i = 1; break;
+            case Note.Bf: i = 1; break;
+            case Note.B: i = 2; break;
+            case Note.C: i = 3; break;
+            case Note.Cs: i = 4; break;
+            case Note.Df: i = 4; break;
+            case Note.D: i = 5; break;
+            case Note.Ds: i = 6; break;
+            case Note.Ef: i = 6; break;
+            case Note.E: i = 7; break;
+            case Note.F: i = 8; break;
+            case Note.Fs: i = 9; break;
+            case Note.Gf: i = 9; break;
+            case Note.G: i = 10; break;
+            case Note.Gs: i = 11; break;
+            default: return null;
+        }
+
+        return Emiters[i + KeysPerOctave * octave];
+    }
+
+
+}
+
+public enum NoteType { Flat, Natural, Sharp }
+public static class Note
+{
+    public const string Af = "Af";
+    public const string A = "A";
+    public const string As = "As";
+    public const string Bf = "Bf";
+    public const string B = "B";
+    public const string C = "C";
+    public const string Cs = "Cs";
+    public const string Df = "Df";
+    public const string D = "D";
+    public const string Ds = "Ds";
+    public const string Ef = "Ef";
+    public const string E = "E";
+    public const string F = "F";
+    public const string Fs = "Fs";
+    public const string Gf = "Gf";
+    public const string G = "G";
+    public const string Gs = "Gs";
+
+    public static readonly string[] Natural = new string[]
+    { A, B, C, D, E, F, G };
+    public static readonly string[] Unique = new string[]
+    { A, As, B, C, Cs, D, Ds, E, F, Fs, G, Gs };
+
+    public static NoteType GetNoteType(string note)
+    {
+        return note.Length <= 1 ? NoteType.Natural :
+            note[1] == 'f' ? NoteType.Flat : NoteType.Sharp;
+    }
+    public static string SetNoteType(string note, NoteType type)
+    {
+        return type == NoteType.Natural ? note.Substring(0, 1) :
+               type == NoteType.Sharp ? note.Substring(0, 1) + "s" :
+               note.Substring(0, 1) + "f";
+    }
 }

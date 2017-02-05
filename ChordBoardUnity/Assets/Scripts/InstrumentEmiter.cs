@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class InstrumentEmiter : MonoBehaviour
 {
-    public Note Note { get; private set; }
+    public string Note { get; private set; }
     public int Octave { get; private set; }
     public string NoteName { get; private set; }
     
@@ -20,7 +20,7 @@ public class InstrumentEmiter : MonoBehaviour
     private float vibrato_speed = 20f;
 
 
-    public void Initialize(AudioClip clip, Note note, int octave, Instrument instrument)
+    public void Initialize(AudioClip clip, string note, int octave, Instrument instrument)
     {
         Octave = octave;
         Note = note;

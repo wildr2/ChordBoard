@@ -5,13 +5,12 @@ using System;
 public class InstrumentKey : MonoBehaviour
 {
     new private BoxCollider collider;
-    //private SpriteRenderer spriter;
     public MeshRenderer base_mesh;
     public MeshRenderer highlight;
     private Color color;
     private float base_thickness;
 
-    public bool Sharp { get; set; }
+    public NoteType NoteType { get; set; }
     public Finger ControlFinger { get; private set; }
     public int LastChordNum { get; private set; }
 
@@ -20,9 +19,11 @@ public class InstrumentKey : MonoBehaviour
 
     public InstrumentEmiter Emiter
     {
-        get { return Sharp ? emiter_sharp : emiter_natural; }
+        get { return NoteType == NoteType.Natural ? emiter_natural :
+                     NoteType == NoteType.Sharp ? emiter_sharp :
+                     emiter_flat; }
     }
-    private InstrumentEmiter emiter_natural, emiter_sharp;
+    private InstrumentEmiter emiter_natural, emiter_flat, emiter_sharp;
 
     // [chord][i]
     public InstrumentKey[][] ChordKeys { get; set; }
@@ -50,9 +51,13 @@ public class InstrumentKey : MonoBehaviour
 
     // PUBLIC MODIFIERS
 
-    public void Initialize(InstrumentEmiter emiter_natural, InstrumentEmiter emiter_sharp, Color color)
+    public void Initialize(InstrumentEmiter emiter_natural, InstrumentEmiter emiter_flat,
+        InstrumentEmiter emiter_sharp, Color color)
     {
+        NoteType = NoteType.Natural;
+
         this.emiter_natural = emiter_natural;
+        this.emiter_flat = emiter_flat;
         this.emiter_sharp = emiter_sharp;
         this.color = color;
 
