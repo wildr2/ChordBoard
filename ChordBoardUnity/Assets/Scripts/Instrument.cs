@@ -78,8 +78,10 @@ public class Instrument : MonoBehaviour
             {
                 for (int j = 0; j < Keys[pi][i].Length; ++j)
                 {
-                    string sig_note = key_sig[j % Note.Natural.Length];
-                    Keys[pi][i][j].NoteType = Note.GetNoteType(sig_note);
+                    string sig_note_0 = key_sig[j % Note.Natural.Length];
+                    string sig_note_1 = key_sig[i % Note.Natural.Length];
+                    Keys[pi][i][j].NoteTypes[0] = Note.GetNoteType(sig_note_0);
+                    Keys[pi][i][j].NoteTypes[1] = Note.GetNoteType(sig_note_1);
                 }
             }
         }
@@ -211,7 +213,7 @@ public class Instrument : MonoBehaviour
     private void CreateKeys()
     {
         int panels = 1;
-        int boards = 4;
+        int boards = Note.Natural.Length * num_octaves;
         int keys_per_board = Note.Natural.Length * num_octaves;
 
         Keys = new InstrumentKey[panels][][];
@@ -247,6 +249,10 @@ public class Instrument : MonoBehaviour
                 board.transform.localPosition = new Vector3(0, (key_h + board_spacing) * -b, 0);
                 board.transform.localRotation = Quaternion.identity;
 
+                int octave2 = Mathf.FloorToInt(b / (float)Note.Natural.Length);
+                int nat_note2_i = b % Note.Natural.Length;
+                string note2 = Note.Natural[nat_note2_i];
+
                 // Keys
                 Keys[p][b] = new InstrumentKey[keys_per_board];
                 for (int k = 0; k < keys_per_board; ++k)
@@ -260,13 +266,19 @@ public class Instrument : MonoBehaviour
                     key.transform.localPosition = new Vector3(k * (key_w + key_spacing), 0, 0);
                     key.transform.localRotation = Quaternion.identity;
 
-                    key.Initialize(
-                        EmitterFromNote(note, octave),
-                        EmitterFromNote(Note.SetNoteType(note, NoteType.Flat), octave),
-                        EmitterFromNote(Note.SetNoteType(note, NoteType.Sharp), octave),
-                        note_colors[nat_note_i]);
+                    Color color = note_colors[1];
+                    if (b == k) color = note_colors[nat_note_i];
 
-                    key.name = "Key " + key.Emiter.NoteName;
+                    key.Initialize(
+                        new InstrumentEmiter[] { EmitterFromNote(note, octave), EmitterFromNote(note2, octave2) },
+                        new InstrumentEmiter[] { EmitterFromNote(Note.SetNoteType(note, NoteType.Flat), octave),
+                            EmitterFromNote(Note.SetNoteType(note2, NoteType.Flat), octave2) },
+                        new InstrumentEmiter[] { EmitterFromNote(Note.SetNoteType(note, NoteType.Sharp), octave),
+                            EmitterFromNote(Note.SetNoteType(note2, NoteType.Sharp), octave2) },
+                        color);
+
+                    key.name = "Key ";// + key.GetEmiters()[0].NoteName + "/" + key.GetEmiters()[1].NoteName;
+                    //Tools.Log(key.name);
 
                     Keys[p][b][k] = key;
                     AllKeys[key_num] = key;
@@ -274,10 +286,10 @@ public class Instrument : MonoBehaviour
                 }
 
                 // Setup chords
-                for (int k = 0; k < Keys[p][b].Length; ++k)
-                {
-                    AssignChordKeys(p, b, k);
-                }
+                //for (int k = 0; k < Keys[p][b].Length; ++k)
+                //{
+                //    AssignChordKeys(p, b, k);
+                //}
             }
         }
     }

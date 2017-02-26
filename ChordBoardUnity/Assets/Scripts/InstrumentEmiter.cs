@@ -79,9 +79,9 @@ public class InstrumentEmiter : MonoBehaviour
             float dist = instrument.GetPlane().GetDistanceToPoint(
                 ControlFinger.transform.position);
 
-            float travel = Mathf.Max(0, Mathf.Abs(play_dist - dist) - vibrato_deadzone);
-            float vibrato = Mathf.Sin(travel * Mathf.PI * 2f * vibrato_speed);
-            AudioSource.pitch = 1 + vibrato * vibrato_intensity;
+            //float travel = Mathf.Max(0, Mathf.Abs(play_dist - dist) - vibrato_deadzone);
+            //float vibrato = Mathf.Sin(travel * Mathf.PI * 2f * vibrato_speed);
+            //AudioSource.pitch = 1 + vibrato * vibrato_intensity;
 
             //DebugLineDrawer.Draw(ControlFinger.transform.position,
             //    ControlFinger.transform.position + instrument.transform.forward * Mathf.Abs(play_dist - dist),

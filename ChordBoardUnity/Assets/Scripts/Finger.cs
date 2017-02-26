@@ -112,24 +112,32 @@ public class Finger : MonoBehaviour
             bool index_down = index && prev_index <= idex_boundary;
             bool hand_down = hand && prev_hand <= idex_boundary;
 
-            if (stick_down || (stick && stick_area != prev_stick_area))
+            //if (stick_down || (stick && stick_area != prev_stick_area))
+            //{
+            //    SetDown(stick_area + 1, twist, intensity);
+            //}
+            //if (index_down || hand_down)
+            //{
+            //    if (in_key.ControlFinger == this && in_key.LastChordNum == 0)
+            //    {
+            //        // Don't play key already held in chord 0 by this finger
+            //        // - down will trigger on next key touched if input still held
+            //        // - allows fast playing of adjacent keys
+            //        if (index_down) input_index = prev_index;
+            //        if (hand_down) input_hand = prev_hand;
+            //    }
+            //    else
+            //    {
+            //        SetDown(0, twist, intensity);
+            //    }
+            //}
+            if (index_down)
             {
-                SetDown(stick_area + 1, twist, intensity);
+                SetDown(0, twist, intensity);
             }
-            if (index_down || hand_down)
+            if (hand_down)
             {
-                if (in_key.ControlFinger == this && in_key.LastChordNum == 0)
-                {
-                    // Don't play key already held in chord 0 by this finger
-                    // - down will trigger on next key touched if input still held
-                    // - allows fast playing of adjacent keys
-                    if (index_down) input_index = prev_index;
-                    if (hand_down) input_hand = prev_hand;
-                }
-                else
-                {
-                    SetDown(0, twist, intensity);
-                }
+                SetDown(1, twist, intensity);
             }
             if (!stick && !index && !hand)
             {
@@ -137,7 +145,7 @@ public class Finger : MonoBehaviour
             }
         }
     }
-    private void SetDown(int chord, float twist, float intensity)
+    private void SetDown(int btn_id, float twist, float intensity)
     {
         Down = true;
 
@@ -148,7 +156,7 @@ public class Finger : MonoBehaviour
 
         if (in_key != null)
         {
-            PlayKey(in_key, chord, twist, intensity);
+            PlayKey(in_key, btn_id, twist, intensity);
         }
     }
     private void SetUp()
@@ -175,9 +183,9 @@ public class Finger : MonoBehaviour
         {
         }
     }
-    private void PlayKey(InstrumentKey key, int chord, float twist, float intensity)
+    private void PlayKey(InstrumentKey key, int btn_id, float twist, float intensity)
     {
-        key.Play(this, chord, twist, intensity);
+        key.Play(this, btn_id, twist, intensity);
         if (on_hit_key != null) on_hit_key(key);
     }
     private void Release()

@@ -10,20 +10,20 @@ public class InstrumentKey : MonoBehaviour
     private Color color;
     private float base_thickness;
 
-    public NoteType NoteType { get; set; }
+    public NoteType[] NoteTypes { get; set; }
     public Finger ControlFinger { get; private set; }
     public int LastChordNum { get; private set; }
 
     private float play_timestamp;
     private float[] play_delays;
 
-    public InstrumentEmiter Emiter
-    {
-        get { return NoteType == NoteType.Natural ? emiter_natural :
-                     NoteType == NoteType.Sharp ? emiter_sharp :
-                     emiter_flat; }
-    }
-    private InstrumentEmiter emiter_natural, emiter_flat, emiter_sharp;
+    //public InstrumentEmiter[] Emiter
+    //{
+    //    get { return NoteType == NoteType.Natural ? emiter_natural :
+    //                 NoteType == NoteType.Sharp ? emiter_sharp :
+    //                 emiter_flat; }
+    //}
+    private InstrumentEmiter[] emiter_natural, emiter_flat, emiter_sharp;
 
     // [chord][i]
     public InstrumentKey[][] ChordKeys { get; set; }
@@ -31,6 +31,22 @@ public class InstrumentKey : MonoBehaviour
 
     // PUBLIC ACCESSORS
 
+    public InstrumentEmiter GetEmiter(int btn_id)
+    {
+        return NoteTypes[btn_id] == NoteType.Natural ? emiter_natural[btn_id] :
+                     NoteTypes[btn_id] == NoteType.Sharp ? emiter_sharp[btn_id] :
+                     emiter_flat[btn_id];
+    }
+    public InstrumentEmiter[] GetEmiters()
+    {
+        int n = emiter_natural.Length;
+        InstrumentEmiter[] emiters = new InstrumentEmiter[n];
+        for (int i = 0; i < n; ++i)
+        {
+            emiters[i] = GetEmiter(i);
+        }
+        return emiters;
+    }
     public Bounds GetCollisionBounds()
     {
         return collider.bounds;
@@ -51,10 +67,10 @@ public class InstrumentKey : MonoBehaviour
 
     // PUBLIC MODIFIERS
 
-    public void Initialize(InstrumentEmiter emiter_natural, InstrumentEmiter emiter_flat,
-        InstrumentEmiter emiter_sharp, Color color)
+    public void Initialize(InstrumentEmiter[] emiter_natural, InstrumentEmiter[] emiter_flat,
+        InstrumentEmiter[] emiter_sharp, Color color)
     {
-        NoteType = NoteType.Natural;
+        NoteTypes = new NoteType[emiter_natural.Length];
 
         this.emiter_natural = emiter_natural;
         this.emiter_flat = emiter_flat;
@@ -69,56 +85,29 @@ public class InstrumentKey : MonoBehaviour
         highlight.material.SetColor("_Color", highlight_color);
         highlight.gameObject.SetActive(false);    
     }
-    public void Play(Finger finger, int chord, float twist, float intensity)
+    public void Play(Finger finger, int btn_id, float twist, float intensity)
     {
-        if (chord < 0 || chord > ChordKeys.Length)
+        if (GetEmiter(btn_id) != null)
         {
-            Debug.LogError("Invalid chord number");
-            return;
+            GetEmiter(btn_id).Play(finger, intensity);
+            SetNewControlFinger(finger);
         }
-
-        play_timestamp = Time.time;
-
-        play_delays = new float[ChordKeys[chord].Length];
-        for (int i = 0; i < play_delays.Length; ++i)
-        {
-            if (twist > 0)
-            {
-                play_delays[i] = Mathf.Abs(twist) * 0.25f * i;
-            }
-            else
-            {
-                play_delays[i] = Mathf.Abs(twist) * 0.25f *
-                    (play_delays.Length - 1 - i);
-            }
-            
-        }
-
-        for (int i = 0; i < ChordKeys[chord].Length; ++i)
-        {
-            InstrumentKey key = ChordKeys[chord][i];
-            StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Play(finger, intensity), play_delays[i]));
-        }
-
-        SetNewControlFinger(finger);
-        LastChordNum = chord;
     }
-    public void Play2(Finger finger, int chord, float twist, float intensity)
-    {
-        if (chord < 0 || chord > ChordKeys.Length)
-        {
-            Debug.LogError("Invalid chord number");
-            return;
-        }
+    //public void Play2(Finger finger, int chord, float twist, float intensity)
+    //{
+    //    if (chord < 0 || chord > ChordKeys.Length)
+    //    {
+    //        Debug.LogError("Invalid chord number");
+    //        return;
+    //    }
 
-        play_timestamp = Time.time;
+    //    play_timestamp = Time.time;
 
-        ChordKeys[chord][0].Emiter.Play(finger, intensity);
+    //    ChordKeys[chord][0].Emiter.Play(finger, intensity);
         
-        SetNewControlFinger(finger);
-        LastChordNum = chord;
-    }
+    //    SetNewControlFinger(finger);
+    //    LastChordNum = chord;
+    //}
 
 
     // PRIVATE MODIFIERS
@@ -130,20 +119,29 @@ public class InstrumentKey : MonoBehaviour
     }
     private void Update()
     {
-        if (Emiter.AudioSource.isPlaying)
+        bool highlighted = false;
+
+        foreach (InstrumentEmiter emiter in GetEmiters())
         {
-            if (!highlight.gameObject.activeInHierarchy)
-                highlight.gameObject.SetActive(true);
+            if (emiter == null) continue;
+            if (emiter.AudioSource.isPlaying)
+            {
+                if (!highlight.gameObject.activeInHierarchy)
+                    highlight.gameObject.SetActive(true);
 
-            Vector3 s = highlight.transform.localScale;
-            s.z = Emiter.AudioSource.volume * 0.25f;
-            highlight.transform.localScale = s;
+                Vector3 s = highlight.transform.localScale;
+                s.z = emiter.AudioSource.volume * 0.25f;
+                highlight.transform.localScale = s;
 
-            Vector3 p = highlight.transform.localPosition;
-            p.z = -s.z / 2f - base_thickness / 2f;
-            highlight.transform.localPosition = p; 
+                Vector3 p = highlight.transform.localPosition;
+                p.z = -s.z / 2f - base_thickness / 2f;
+                highlight.transform.localPosition = p;
+
+                highlighted = true;
+            }
         }
-        else
+
+        if (!highlighted)
         {
             if (highlight.gameObject.activeInHierarchy)
                 highlight.gameObject.SetActive(false);
@@ -164,37 +162,25 @@ public class InstrumentKey : MonoBehaviour
         ControlFinger.on_release -= OnFingerRelease;
         ControlFinger = null;
 
-        float dur = Time.time - play_timestamp;
 
-        // Stop chord keys at right times
-        for (int i = 0; i < ChordKeys[LastChordNum].Length; ++i)
+        foreach (InstrumentEmiter emiter in GetEmiters())
         {
-            InstrumentKey key = ChordKeys[LastChordNum][i];
-
-            float end_time = play_timestamp + play_delays[i] + dur;
-            StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Stop(), end_time - Time.time));
-        }
-    }
-    private void OnFingerRelease2()
-    {
-        float dur = Time.time - play_timestamp;
-
-        Emiter.Stop();
-
-        for (int i = 1; i < ChordKeys[LastChordNum].Length; ++i)
-        {
-            Finger finger = ControlFinger;
-
-            InstrumentKey key = ChordKeys[LastChordNum][i];
-            StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Play(finger, 1), (i-1) * dur));
-
-            StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Stop(), i * dur));
+            if (emiter != null)
+            {
+                emiter.Stop();
+            }
         }
 
-        ControlFinger.on_release -= OnFingerRelease;
-        ControlFinger = null;
+        //float dur = Time.time - play_timestamp;
+
+        //// Stop chord keys at right times
+        //for (int i = 0; i < ChordKeys[LastChordNum].Length; ++i)
+        //{
+        //    InstrumentKey key = ChordKeys[LastChordNum][i];
+
+        //    float end_time = play_timestamp + play_delays[i] + dur;
+        //    StartCoroutine(CoroutineUtil.DoAfterDelay(
+        //        () => key.Emiter.Stop(), end_time - Time.time));
+        //}
     }
 }
