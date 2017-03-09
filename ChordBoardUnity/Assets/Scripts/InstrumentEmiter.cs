@@ -19,10 +19,6 @@ public class InstrumentEmiter : MonoBehaviour
     private float vibrato_intensity = 0.006f;
     private float vibrato_speed = 20f;
 
-    private float start_time;
-    public AnimationCurve vol_curve;
-    public AudioLowPassFilter filter;
-
 
     public void Initialize(AudioClip clip, string note, int octave, Instrument instrument)
     {
@@ -35,7 +31,7 @@ public class InstrumentEmiter : MonoBehaviour
 
         this.instrument = instrument;
     }
-    public void Play(Finger finger)
+    public void Play(Finger finger, float intensity)
     {
         ControlFinger = finger;
 
@@ -43,8 +39,7 @@ public class InstrumentEmiter : MonoBehaviour
         {
             AudioSource.Play();
         }
-        start_time = Time.time;
-        AudioSource.volume = 0;
+        AudioSource.volume = intensity;
 
         play_dist = instrument.GetPlane().GetDistanceToPoint(
                 ControlFinger.transform.position);
@@ -77,20 +72,16 @@ public class InstrumentEmiter : MonoBehaviour
         else
         {
             // Intensity
-            //float target_intensity = Mathf.Clamp01(
-            //    Mathf.DeltaAngle(-45, ControlFinger.transform.rotation.eulerAngles.x) / 90f);
-            float t = Time.time - start_time;
-            //AudioSource.volume = (1-Mathf.Pow(1-t, 2));
-            AudioSource.volume = vol_curve.Evaluate(t / 1f);
-            filter.cutoffFrequency = 700 + (1 - vol_curve.Evaluate(t / 1f)) * 1000;
+            float intensity = Mathf.DeltaAngle(-45, ControlFinger.transform.rotation.eulerAngles.x) / 90f;
+            AudioSource.volume = Mathf.Clamp01(intensity);
 
             // Vibrato
-            //float dist = instrument.GetPlane().GetDistanceToPoint(
-            //    ControlFinger.transform.position);
+            float dist = instrument.GetPlane().GetDistanceToPoint(
+                ControlFinger.transform.position);
 
-            //float travel = Mathf.Max(0, Mathf.Abs(play_dist - dist) - vibrato_deadzone);
-            //float vibrato = Mathf.Sin(travel * Mathf.PI * 2f * vibrato_speed);
-            //AudioSource.pitch = 1 + vibrato * vibrato_intensity;
+            float travel = Mathf.Max(0, Mathf.Abs(play_dist - dist) - vibrato_deadzone);
+            float vibrato = Mathf.Sin(travel * Mathf.PI * 2f * vibrato_speed);
+            AudioSource.pitch = 1 + vibrato * vibrato_intensity;
 
             //DebugLineDrawer.Draw(ControlFinger.transform.position,
             //    ControlFinger.transform.position + instrument.transform.forward * Mathf.Abs(play_dist - dist),

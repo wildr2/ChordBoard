@@ -17,7 +17,6 @@ public class Finger : MonoBehaviour
     // General State 
     private InstrumentKey in_key;
     public bool Down { get; private set; }
-    public float DownValue { get; private set; }
     public Vector3 LastPos { get; private set; }
 
     // Input
@@ -98,6 +97,8 @@ public class Finger : MonoBehaviour
         float twist = Mathf.DeltaAngle(0, transform.rotation.eulerAngles.z) / 90f;
         twist = -Mathf.Sign(twist) * Mathf.Pow(twist, 2);
 
+        float intensity = Mathf.DeltaAngle(-90, transform.rotation.eulerAngles.x) / 180f;
+
         //Tools.Log(intensity);
         //bool arpegiated = Mathf.Abs(twist) > 20f;
         //if (arpegiated) Hand.DebugFlash(Color.red);
@@ -113,7 +114,7 @@ public class Finger : MonoBehaviour
 
             if (stick_down || (stick && stick_area != prev_stick_area))
             {
-                SetDown(stick_area + 1, twist);
+                SetDown(stick_area + 1, twist, intensity);
             }
             if (index_down || hand_down)
             {
@@ -127,21 +128,16 @@ public class Finger : MonoBehaviour
                 }
                 else
                 {
-                    SetDown(0, twist);
+                    SetDown(0, twist, intensity);
                 }
             }
             if (!stick && !index && !hand)
             {
                 if (Down) SetUp();
             }
-
-            DownValue = Mathf.Max(
-                (input_index - idex_boundary) / (1 - idex_boundary),
-                (input_hand - hand_boundary) / (1 - hand_boundary),
-                (input_stick.magnitude - stick_boundary) / (1 - stick_boundary));
         }
     }
-    private void SetDown(int chord, float twist)
+    private void SetDown(int chord, float twist, float intensity)
     {
         Down = true;
 
@@ -152,7 +148,7 @@ public class Finger : MonoBehaviour
 
         if (in_key != null)
         {
-            PlayKey(in_key, chord, twist);
+            PlayKey(in_key, chord, twist, intensity);
         }
     }
     private void SetUp()
@@ -179,9 +175,9 @@ public class Finger : MonoBehaviour
         {
         }
     }
-    private void PlayKey(InstrumentKey key, int chord, float twist)
+    private void PlayKey(InstrumentKey key, int chord, float twist, float intensity)
     {
-        key.Play(this, chord, twist);
+        key.Play(this, chord, twist, intensity);
         if (on_hit_key != null) on_hit_key(key);
     }
     private void Release()
