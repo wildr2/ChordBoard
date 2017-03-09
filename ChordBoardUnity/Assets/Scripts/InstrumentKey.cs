@@ -69,7 +69,7 @@ public class InstrumentKey : MonoBehaviour
         highlight.material.SetColor("_Color", highlight_color);
         highlight.gameObject.SetActive(false);    
     }
-    public void Play(Finger finger, int chord, float twist, float intensity)
+    public void Play(Finger finger, int chord, float twist)
     {
         if (chord < 0 || chord > ChordKeys.Length)
         {
@@ -98,24 +98,9 @@ public class InstrumentKey : MonoBehaviour
         {
             InstrumentKey key = ChordKeys[chord][i];
             StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Play(finger, intensity), play_delays[i]));
+                () => key.Emiter.Play(finger), play_delays[i]));
         }
 
-        SetNewControlFinger(finger);
-        LastChordNum = chord;
-    }
-    public void Play2(Finger finger, int chord, float twist, float intensity)
-    {
-        if (chord < 0 || chord > ChordKeys.Length)
-        {
-            Debug.LogError("Invalid chord number");
-            return;
-        }
-
-        play_timestamp = Time.time;
-
-        ChordKeys[chord][0].Emiter.Play(finger, intensity);
-        
         SetNewControlFinger(finger);
         LastChordNum = chord;
     }
@@ -188,7 +173,7 @@ public class InstrumentKey : MonoBehaviour
 
             InstrumentKey key = ChordKeys[LastChordNum][i];
             StartCoroutine(CoroutineUtil.DoAfterDelay(
-                () => key.Emiter.Play(finger, 1), (i-1) * dur));
+                () => key.Emiter.Play(finger), (i-1) * dur));
 
             StartCoroutine(CoroutineUtil.DoAfterDelay(
                 () => key.Emiter.Stop(), i * dur));
