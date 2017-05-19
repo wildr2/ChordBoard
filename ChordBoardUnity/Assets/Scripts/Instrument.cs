@@ -15,6 +15,7 @@ public class Instrument : MonoBehaviour
 
     // Frequencies
     private int num_octaves = 5;
+    private int octave_shift = -1;
     private float[] mid_frequencies = new float[] // for the middle octave
     {
         220.000f,233.082f,246.942f,261.626f,
@@ -170,7 +171,7 @@ public class Instrument : MonoBehaviour
             for (int i = 0; i < mid_frequencies.Length; ++i)
             {
                 frequencies[note_i] = mid_frequencies[i] *
-                    Mathf.Pow(2, octave - mid_octave);
+                    Mathf.Pow(2, octave - mid_octave + octave_shift);
                 ++note_i;
             }
         }
